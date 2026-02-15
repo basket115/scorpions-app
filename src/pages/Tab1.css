@@ -1,0 +1,39 @@
+/* Sticky Filter-Leiste */
+.filter-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Segment etwas kompakter */
+.filter-segment {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Segment-Button: Label oben, Badge unten */
+.filter-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Badge mittig, klein */
+.filter-badge {
+  margin-left: 0;
+  align-self: center;
+  font-size: 11px;
+  height: 18px;
+  line-height: 18px;
+  padding: 0 6px;
+}
+
+/* Ergebnis-Zeile */
+.result-box {
+  margin: 8px 0 12px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+}
+

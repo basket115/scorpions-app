@@ -1,0 +1,71 @@
+/* ============================================================
+   Ionic CSS Variables – Scorpions Feed (Navy & Copper)
+   ============================================================ */
+
+   :root {
+
+    /* ================= Primary (Copper Accent) ================= */
+    --ion-color-primary: #C97B2C;
+    --ion-color-primary-rgb: 201, 123, 44;
+    --ion-color-primary-contrast: #1E2A38;
+    --ion-color-primary-contrast-rgb: 30, 42, 56;
+    --ion-color-primary-shade: #b06b26;
+    --ion-color-primary-tint: #cf8a45;
+  
+    /* ================= Secondary (Navy Dark) ================= */
+    --ion-color-secondary: #1E2A38;
+    --ion-color-secondary-rgb: 30, 42, 56;
+    --ion-color-secondary-contrast: #F3F4F6;
+    --ion-color-secondary-contrast-rgb: 243, 244, 246;
+    --ion-color-secondary-shade: #192330;
+    --ion-color-secondary-tint: #344455;
+  
+    /* ================= Success ================= */
+    --ion-color-success: #2E8B57;
+    --ion-color-success-rgb: 46, 139, 87;
+    --ion-color-success-contrast: #ffffff;
+    --ion-color-success-shade: #287a4c;
+    --ion-color-success-tint: #46966b;
+  
+    /* ================= Warning ================= */
+    --ion-color-warning: #C97B2C;
+    --ion-color-warning-rgb: 201, 123, 44;
+    --ion-color-warning-contrast: #1E2A38;
+    --ion-color-warning-shade: #b06b26;
+    --ion-color-warning-tint: #cf8a45;
+  
+    /* ================= Danger ================= */
+    --ion-color-danger: #B22222;
+    --ion-color-danger-rgb: 178, 34, 34;
+    --ion-color-danger-contrast: #ffffff;
+    --ion-color-danger-shade: #991c1c;
+    --ion-color-danger-tint: #c73c3c;
+  
+    /* ================= Background ================= */
+    --ion-background-color: #1E2A38;
+    --ion-background-color-rgb: 30, 42, 56;
+  
+    --ion-text-color: #F3F4F6;
+    --ion-text-color-rgb: 243, 244, 246;
+  
+    --ion-card-background: #263445;
+    --ion-item-background: #263445;
+  
+    /* ================= Toolbar ================= */
+    --ion-toolbar-background: #1E2A38;
+    --ion-toolbar-color: #F3F4F6;
+  
+    /* ================= Border ================= */
+    --ion-border-color: #344455;
+  
+    /* ================= Typography ================= */
+    --ion-font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Helvetica,
+      Arial,
+      sans-serif;
+  }
+  

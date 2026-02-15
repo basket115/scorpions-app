@@ -1,0 +1,101 @@
+/* ============================================================
+   Scorpions Feed Window – Full Deep Red
+   ============================================================ */
+
+   .feed-card {
+    background: #b71c1c !important;
+    border-radius: 26px;
+    padding: 22px;
+    margin: 20px;
+    color: #ffffff;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.35);
+  }
+  
+  /* ===== Bild oben ===== */
+  .feed-card img {
+    width: 100%;
+    border-radius: 20px;
+    margin-bottom: 18px;
+  }
+  
+  /* ===== Kategorie Buttons ===== */
+  .category-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  
+  .category-buttons button {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+  
+  /* ===== Score Box ===== */
+  .score-box {
+    background: #ffffff;
+    color: #1E2A38;
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+  }
+  
+  .score-box .score {
+    background: #e0e0e0;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+  }
+  
+  /* ===== Titel ===== */
+  .feed-card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  
+  /* ===== Beschreibung ===== */
+  .feed-card p {
+    opacity: 0.95;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  
+  /* ===== Meta Infos ===== */
+  .feed-meta {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    opacity: 0.85;
+  }
+  
+  /* ===== Video Button ===== */
+  .video-button {
+    margin-top: 18px;
+    background: #1E2A38;
+    color: #ffffff;
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-weight: 600;
+    border: none;
+  }
+  
+  /* ===== Badge (ERGEBNIS) ===== */
+  .badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: #ffffff;
+    color: #b71c1c;
+    padding: 6px 14px;
+    border-radius: 14px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  
