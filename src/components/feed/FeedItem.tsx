@@ -363,6 +363,7 @@ const FeedItem: React.FC<Props> = ({ item }) => {
         border: '1px solid rgba(0,0,0,0.08)',
         boxShadow: '0 14px 34px rgba(0,0,0,0.25)',
         background: CARD_BG,
+        margin: 0,
       }}
     >
       {/* ✅ Bild fullwidth, kein padding, kein Radius */}
