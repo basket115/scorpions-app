@@ -27,12 +27,6 @@ function looksLikeYouTube(url?: string): boolean {
   return u.includes('youtube.com') || u.includes('youtu.be');
 }
 
-/**
- * Google Drive Links zuverlässig als echte Bild-URL:
- * - file/d/<ID>/view
- * - uc?export=view&id=<ID>
- * -> thumbnail?id=<ID>&sz=w1200
- */
 function driveToImageUrl(url?: string): string | undefined {
   if (!url) return undefined;
   const s = String(url).trim();
@@ -40,11 +34,9 @@ function driveToImageUrl(url?: string): string | undefined {
 
   let id: string | null = null;
 
-  // file/d/<id>
   const m1 = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if (m1?.[1]) id = m1[1];
 
-  // uc?...id=<id>
   if (!id) {
     const m2 = s.match(/[?&]id=([^&]+)/i);
     if (m2?.[1] && s.includes('drive.google.com')) id = m2[1];
@@ -281,7 +273,7 @@ const FeedItem: React.FC<Props> = ({ item }) => {
   }
 
   // ===========================
-  // TRAINING (unverändert / selten genutzt)
+  // TRAINING
   // ===========================
   if (kind === 'training') {
     return (
@@ -318,9 +310,6 @@ const FeedItem: React.FC<Props> = ({ item }) => {
             >
               Training
             </span>
-            {item.id ? (
-              <span style={{ fontSize: 12, opacity: 0.55 }}>{item.id}</span>
-            ) : null}
           </div>
 
           {item.title ? (
@@ -361,7 +350,7 @@ const FeedItem: React.FC<Props> = ({ item }) => {
   }
 
   // ===========================
-  // NEWS / DEFAULT (gleicher Hintergrund wie Result)
+  // NEWS / DEFAULT
   // ===========================
   const showYoutube = looksLikeYouTube(item.linkUrl);
   const linkLabel = item.linkLabel || (showYoutube ? 'YouTube' : 'Link öffnen');
@@ -376,13 +365,14 @@ const FeedItem: React.FC<Props> = ({ item }) => {
         background: CARD_BG,
       }}
     >
+      {/* ✅ Bild fullwidth, kein padding, kein Radius */}
       {item.image ? (
-        <div style={{ padding: 12 }}>
+        <div style={{ padding: 0 }}>
           <ImageBlock
             src={item.image}
             alt={item.title || 'Bild'}
             aspectRatio="16 / 9"
-            radius={16}
+            radius={0}
           />
         </div>
       ) : null}
@@ -415,18 +405,7 @@ const FeedItem: React.FC<Props> = ({ item }) => {
           >
             News
           </span>
-
-          {item.id ? (
-            <span
-              style={{
-                fontSize: 12,
-                opacity: 0.9,
-                color: 'rgba(255,255,255,0.92)',
-              }}
-            >
-              {item.id}
-            </span>
-          ) : null}
+          {/* ✅ ID entfernt */}
         </div>
 
         {item.title ? (
