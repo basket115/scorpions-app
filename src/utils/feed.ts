@@ -314,4 +314,8 @@ export async function fetchFeed(): Promise<FeedRow[]> {
     .filter((row) => row.id && row.title)
     .sort((a, b) => {
       const at = a.date ? a.date.getTime() : 0;
-      const bt = b.date ? b
+      const bt = b.date ? b.date.getTime() : 0;
+      return bt - at;
+    });
+}
+
