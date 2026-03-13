@@ -45,10 +45,8 @@ export type FeedRow = {
 };
 
 const API_BASE =
-  "HIER_DEINE_APPS_SCRIPT_WEBAPP_URL_EINFUEGEN";
+  "https://script.google.com/macros/s/AKfycbyUP8wHkErf7a20HJemThwY4Vq0xjQiCskpXDWwqysG2y3BCKMulLTRZ7-Fs0LbFoBacg/exec";
 
-// Für Scorpions erstmal V004.
-// Falls nötig später nur diese eine Zeile ändern.
 const KUNDEN_ID = "V002";
 
 function buildUrl(action: string, kundenId: string): string {
@@ -181,7 +179,13 @@ function toKind(row: any): FeedKind {
 
   if (raw.includes("result") || raw.includes("ergebnis")) return "result";
   if (raw.includes("training") || raw.includes("workout")) return "training";
-  if (raw.includes("news") || raw.includes("nachricht") || raw.includes("info")) return "news";
+  if (
+    raw.includes("news") ||
+    raw.includes("nachricht") ||
+    raw.includes("info")
+  ) {
+    return "news";
+  }
 
   return "unknown";
 }
@@ -191,11 +195,17 @@ function normalizeRow(row: any): FeedRow {
     cleanStr(row?.id ?? row?.ID ?? row?.key ?? row?.slug) ??
     `row-${Math.random().toString(36).slice(2, 9)}`;
 
-  const type = cleanStr(row?.type ?? row?.Type ?? row?.Kategorie ?? row?.category);
+  const type = cleanStr(
+    row?.type ?? row?.Type ?? row?.Kategorie ?? row?.category
+  );
   const kind = toKind(row);
 
-  const title = cleanStr(row?.title ?? row?.headline ?? row?.titel ?? row?.Titel ?? row?.name);
-  const text = cleanStr(row?.text ?? row?.body ?? row?.beschreibung ?? row?.desc ?? row?.Text);
+  const title = cleanStr(
+    row?.title ?? row?.headline ?? row?.titel ?? row?.Titel ?? row?.name
+  );
+  const text = cleanStr(
+    row?.text ?? row?.body ?? row?.beschreibung ?? row?.desc ?? row?.Text
+  );
 
   const image = cleanStr(
     row?.heroImageUrl ??
@@ -229,11 +239,19 @@ function normalizeRow(row: any): FeedRow {
       }).format(date)
     : cleanStr(row?.Datum ?? row?.date ?? row?.datum);
 
-  const home = cleanStr(row?.homeTeam ?? row?.home ?? row?.heim ?? row?.teamHome);
-  const away = cleanStr(row?.awayTeam ?? row?.away ?? row?.gast ?? row?.teamAway);
+  const home = cleanStr(
+    row?.homeTeam ?? row?.home ?? row?.heim ?? row?.teamHome
+  );
+  const away = cleanStr(
+    row?.awayTeam ?? row?.away ?? row?.gast ?? row?.teamAway
+  );
 
-  const homeScore = cleanNum(row?.homeScore ?? row?.scoreHome ?? row?.heimPunkte);
-  const awayScore = cleanNum(row?.awayScore ?? row?.scoreAway ?? row?.gastPunkte);
+  const homeScore = cleanNum(
+    row?.homeScore ?? row?.scoreHome ?? row?.heimPunkte
+  );
+  const awayScore = cleanNum(
+    row?.awayScore ?? row?.scoreAway ?? row?.gastPunkte
+  );
 
   const teamIds = cleanStr(
     row?.teamIds ?? row?.teamId ?? row?.team ?? row?.teams ?? row?.Kategorie
@@ -242,11 +260,17 @@ function normalizeRow(row: any): FeedRow {
 
   const competition = cleanStr(row?.competition ?? row?.liga ?? row?.league);
   const venue = cleanStr(row?.venue ?? row?.halle ?? row?.stadion);
-  const highlights = cleanStr(row?.highlights ?? row?.highlight ?? row?.notes);
+  const highlights = cleanStr(
+    row?.highlights ?? row?.highlight ?? row?.notes
+  );
 
-  const trainingType = cleanStr(row?.trainingType ?? row?.training ?? row?.einheit);
+  const trainingType = cleanStr(
+    row?.trainingType ?? row?.training ?? row?.einheit
+  );
   const durationMin = cleanNum(row?.durationMin ?? row?.minutes ?? row?.dauer);
-  const intensity = cleanStr(row?.intensity ?? row?.belastung ?? row?.level);
+  const intensity = cleanStr(
+    row?.intensity ?? row?.belastung ?? row?.level
+  );
 
   const category = cleanStr(row?.Kategorie ?? row?.category ?? row?.type);
 
@@ -318,4 +342,3 @@ export async function fetchFeed(): Promise<FeedRow[]> {
       return bt - at;
     });
 }
-
