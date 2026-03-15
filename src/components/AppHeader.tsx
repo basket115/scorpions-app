@@ -1,107 +1,56 @@
 // src/components/AppHeader.tsx
-
-import React, { useEffect } from "react";
+import React from 'react';
 import {
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
-  IonIcon,
-  IonSpinner,
-} from "@ionic/react";
-import { refreshOutline } from "ionicons/icons";
+  IonHeader, IonToolbar, IonTitle,
+  IonButtons, IonButton, IonIcon, IonSpinner,
+} from '@ionic/react';
+import { refreshOutline, settingsOutline } from 'ionicons/icons';
 
-type Props = {
+interface AppHeaderProps {
   title: string;
+  logoUrl?: string;
+  sponsorLogoUrl?: string;
+  themaFarbe?: string;
   onRefresh?: () => void | Promise<void>;
   loading?: boolean;
-};
-
-// ✅ Scorpions Logo
-const SCORPIONS_LOGO_URL =
-  "https://drive.google.com/thumbnail?id=1SevxeW5MTP5Trzs5ayYJfl_SsdPe3LXa&sz=w256";
-
-const SCORPIONS_RED = "#C4161C";
-const WHITE = "#FFFFFF";
-
-function ensureMontserrat() {
-  if (!document.getElementById("montserrat-font")) {
-    const link = document.createElement("link");
-    link.id = "montserrat-font";
-    link.rel = "stylesheet";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap";
-    document.head.appendChild(link);
-  }
-
-  if (!document.getElementById("global-font-style")) {
-    const style = document.createElement("style");
-    style.id = "global-font-style";
-    style.innerHTML = `
-      * {
-        font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      }
-    `;
-    document.head.appendChild(style);
-  }
+  onAdminClick?: () => void;
 }
 
-const AppHeader: React.FC<Props> = ({ title, onRefresh, loading }) => {
-  useEffect(() => {
-    ensureMontserrat();
-  }, []);
+const s: Record<string, React.CSSProperties> = {
+  startSlot: { display: 'flex', alignItems: 'center', paddingLeft: 6 },
+  logo: { height: 44, width: 44, objectFit: 'contain', borderRadius: 12, background: 'rgba(255,255,255,0.15)' },
+  title: { color: 'white', fontWeight: 700, fontSize: '1.1rem' },
+  endSlot: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 4 },
+  partnerLabel: { fontSize: '0.5rem', color: 'rgba(255,255,255,0.7)', letterSpacing: '1px' },
+  sponsorLogo: { height: 28, width: 44, objectFit: 'contain', background: 'white', borderRadius: 4, padding: 2 },
+  refreshBtn: { color: 'white' },
+  adminBtn: { color: 'rgba(255,255,255,0.75)' },
+};
 
+const AppHeader: React.FC<AppHeaderProps> = ({
+  title, logoUrl, sponsorLogoUrl, themaFarbe, onRefresh, loading, onAdminClick
+}) => {
   return (
     <IonHeader>
-      <IonToolbar
-        style={{
-          "--background": SCORPIONS_RED,
-          "--color": WHITE,
-          borderBottom: "1px solid rgba(255,255,255,0.25)",
-        }}
-      >
-        <IonTitle>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14, // ✅ mehr Abstand Logo → Text
-              minHeight: 44,
-            }}
-          >
-            <img
-              src={SCORPIONS_LOGO_URL}
-              alt="Scorpions"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                objectFit: "cover",
-                boxShadow: "0 6px 14px rgba(0,0,0,0.25)",
-                background: "rgba(255,255,255,0.15)",
-                flex: "0 0 auto",
-              }}
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
-
-            <div style={{ lineHeight: 1.1 }}>
-              <div style={{ fontWeight: 900, fontSize: 18 }}>{title}</div>
-              <div style={{ fontSize: 12, opacity: 0.9 }}>
-                News · Ergebnisse · Training
-              </div>
-            </div>
-          </div>
-        </IonTitle>
-
+      <IonToolbar style={{ '--background': themaFarbe || '#C4161C' } as React.CSSProperties}>
+        <div slot="start" style={s.startSlot}>
+          {logoUrl && <img src={logoUrl} alt="Logo" style={s.logo} />}
+        </div>
+        <IonTitle style={s.title}>{title}</IonTitle>
         <IonButtons slot="end">
-          <IonButton onClick={() => onRefresh?.()} disabled={loading}>
-            {loading ? (
-              <IonSpinner name="crescent" />
-            ) : (
-              <IonIcon icon={refreshOutline} />
-            )}
+          {sponsorLogoUrl && (
+            <div style={s.endSlot}>
+              <span style={s.partnerLabel}>PARTNER</span>
+              <img src={sponsorLogoUrl} alt="Sponsor" style={s.sponsorLogo} />
+            </div>
+          )}
+          {onAdminClick && (
+            <IonButton onClick={onAdminClick} style={s.adminBtn} title="Admin">
+              <IonIcon icon={settingsOutline} />
+            </IonButton>
+          )}
+          <IonButton onClick={() => onRefresh?.()} disabled={loading} style={s.refreshBtn}>
+            {loading ? <IonSpinner name="crescent" /> : <IonIcon icon={refreshOutline} />}
           </IonButton>
         </IonButtons>
       </IonToolbar>
