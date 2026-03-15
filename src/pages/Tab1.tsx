@@ -5,9 +5,15 @@ import AppHeader from "../components/AppHeader";
 import FeedList from "../components/feed/FeedList";
 import { fetchFeed, type FeedRow } from "../utils/feed";
 
-type Props = { onAdminClick?: () => void };
+type Props = {
+  onAdminClick?: () => void;
+  logoUrl?: string;
+  sponsorLogoUrl?: string;
+  themaFarbe?: string;
+  vereinName?: string;
+};
 
-const Tab1: React.FC<Props> = ({ onAdminClick }) => {
+const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFarbe, vereinName }) => {
   const [items, setItems] = useState<FeedRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +36,10 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   return (
     <IonPage>
       <AppHeader
-        title="Scorpions Feed"
+        title={vereinName || "Scorpions Feed"}
+        logoUrl={logoUrl}
+        sponsorLogoUrl={sponsorLogoUrl}
+        themaFarbe={themaFarbe}
         onRefresh={load}
         loading={loading}
         onAdminClick={onAdminClick}
