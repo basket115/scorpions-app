@@ -31,7 +31,6 @@ export type FeedRow = {
   instagramUrl?: string;
   youtubeUrl?: string;
   tiktokUrl?: string;
-  // Extra fields from admin sheet
   content?: string;
   imageUrl?: string;
   createdAt?: string;
@@ -41,7 +40,6 @@ export type FeedRow = {
   deleted?: boolean;
 };
 
-// Alias
 export type FeedItem = FeedRow;
 
 function cleanStr(v: any): string | undefined {
@@ -56,13 +54,48 @@ function cleanNum(v: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+const DE_DATE = new Intl.DateTimeFormat("de-DE", {
+  day: "2-digit", month: "2-digit", year: "numeric"
+});
+
+function formatDate(d: Date): string {
+  return DE_DATE.format(d);
+}
+
+// ✅ Robuster Datum-Parser — versteht alle Formate
 export function parseDate(input: unknown): Date | null {
   if (input === null || input === undefined) return null;
-  if (typeof input === "number") return new Date(input);
-  if (typeof input === "string") {
-    const d = new Date(input.trim());
+
+  if (typeof input === "number" && Number.isFinite(input)) {
+    const d = new Date(input);
     return isNaN(d.getTime()) ? null : d;
   }
+
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+
+    // DD.MM.YYYY oder D.M.YYYY mit optionaler Uhrzeit (z.B. "16.3.2026, 13:08:05")
+    const m = trimmed.match(
+      /^(\d{1,2})\.(\d{1,2})\.(\d{3,4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+    );
+    if (m) {
+      const dd = Number(m[1]);
+      const mm = Number(m[2]);
+      let yyyy = Number(m[3]);
+      if (yyyy < 1000) yyyy = 2000 + yyyy;
+      const hh = m[4] ? Number(m[4]) : 0;
+      const min = m[5] ? Number(m[5]) : 0;
+      const sec = m[6] ? Number(m[6]) : 0;
+      const d = new Date(yyyy, mm - 1, dd, hh, min, sec, 0);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // ISO-String und alle anderen Formate
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   return null;
 }
 
@@ -75,7 +108,19 @@ function toKind(row: any): FeedKind {
 }
 
 function normalizeRow(row: any): FeedRow {
-  const date = parseDate(row?.date || row?.Datum || row?.createdAt);
+  const dateRaw = row?.date || row?.Datum || row?.createdAt;
+  const date = parseDate(dateRaw);
+
+  // ✅ Datum immer als DD.MM.YYYY formatieren
+  const dateLabel = (() => {
+    if (date) return formatDate(date);
+    const raw = cleanStr(row?.Datum || row?.date);
+    if (!raw) return undefined;
+    const fallback = new Date(raw);
+    if (!isNaN(fallback.getTime())) return formatDate(fallback);
+    return raw;
+  })();
+
   const deleted =
     String(row?.['Gelöscht'] || row?.deleted || '').toUpperCase() === 'JA' ||
     row?.deleted === true;
@@ -86,12 +131,11 @@ function normalizeRow(row: any): FeedRow {
     title: cleanStr(row?.title || row?.Titel),
     text: cleanStr(row?.text || row?.Text || row?.Inhalt),
     image: cleanStr(row?.heroImageUrl || row?.image || row?.Bild_URL || row?.imageUrl),
-    linkUrl: cleanStr(row?.linkUrl),
+    linkUrl: cleanStr(row?.linkUrl || row?.Video_URL),
     linkLabel: cleanStr(row?.linkLabel),
+    dateRaw,
     date,
-    dateLabel: date
-      ? new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date)
-      : cleanStr(row?.Datum),
+    dateLabel,
     home: cleanStr(row?.home),
     away: cleanStr(row?.away),
     homeScore: cleanNum(row?.homeScore),
@@ -99,7 +143,7 @@ function normalizeRow(row: any): FeedRow {
     webUrl: cleanStr(row?.WEB_URL || row?.webUrl),
     facebookUrl: cleanStr(row?.Facebook_URL || row?.facebookUrl),
     instagramUrl: cleanStr(row?.Instragram_URL || row?.Instagram_URL || row?.instagramUrl),
-    youtubeUrl: cleanStr(row?.Youtube_URL || row?.Video_URL || row?.youtubeUrl),
+    youtubeUrl: cleanStr(row?.Youtube_URL || row?.youtubeUrl),
     tiktokUrl: cleanStr(row?.TikTok_URL || row?.tiktokUrl),
     content: cleanStr(row?.Text || row?.Inhalt || row?.content),
     imageUrl: cleanStr(row?.Bild_URL || row?.imageUrl),
@@ -112,11 +156,9 @@ function normalizeRow(row: any): FeedRow {
 }
 
 function getKundenId(): string {
-  // URL Parameter
   const params = new URLSearchParams(window.location.search);
   const kunde = params.get('kunde');
   if (kunde) return kunde;
-  // Default Scorpions
   return 'V002';
 }
 
@@ -139,8 +181,13 @@ export async function fetchFeed(): Promise<FeedRow[]> {
 
   return data
     .map(normalizeRow)
-    .filter((item: FeedRow) => !item.deleted);
+    .filter((item: FeedRow) => !item.deleted)
+    // ✅ Neueste Beiträge zuerst
+    .sort((a, b) => {
+      const at = a.date ? a.date.getTime() : 0;
+      const bt = b.date ? b.date.getTime() : 0;
+      return bt - at;
+    });
 }
 
-// Alias
 export const loadFeed = fetchFeed;
