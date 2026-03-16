@@ -99,16 +99,16 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
     }
   };
 
+  // ✅ FIX: DELETE per GET statt POST (löst CORS-Problem)
   const handleDelete = async (beitrag: Beitrag) => {
     if (!beitrag.id) { alert('Keine ID — kann nicht gelöscht werden.'); return; }
     if (!window.confirm(`"${beitrag.Titel}" wirklich löschen?`)) return;
     setDeletingId(beitrag.id);
     try {
-      const res = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_beitrag', kundenId: KUNDEN_ID, id: beitrag.id }),
-      }).then(r => r.json());
+      const res = await fetch(
+        `${API}?action=delete_beitrag&kundenId=${encodeURIComponent(KUNDEN_ID)}&id=${encodeURIComponent(beitrag.id)}`,
+        { method: 'GET', redirect: 'follow' }
+      ).then(r => r.json());
       if (res.success) {
         setBeitraege(prev => prev.filter(b => b.id !== beitrag.id));
       } else {
@@ -119,10 +119,12 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
     }
   };
 
+  // ✅ FIX: color: '#111111' hinzugefügt — Text immer sichtbar
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '10px 12px', marginBottom: 10,
     borderRadius: 8, border: '1px solid #ddd', fontSize: 15,
-    fontFamily: 'inherit', background: '#fafafa', boxSizing: 'border-box',
+    fontFamily: 'inherit', background: '#fafafa',
+    boxSizing: 'border-box', color: '#111111',
   };
 
   return (
@@ -134,7 +136,8 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
           </IonButton>
           <div slot="start" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {branding.logoUrl && (
-              <img src={branding.logoUrl} alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain', background: 'rgba(255,255,255,0.15)', padding: 3 }} />
+              <img src={branding.logoUrl} alt="Logo"
+                style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain', background: 'rgba(255,255,255,0.15)', padding: 3 }} />
             )}
             <IonTitle style={{ color: 'white', fontWeight: 700 }}>
               {branding.vereinName} Admin
@@ -176,10 +179,17 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
               </select>
               {success && <p style={{ color: '#34a853', marginBottom: 10 }}>{success}</p>}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15 }}>
+                <button onClick={() => setShowForm(false)} style={{
+                  flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ddd',
+                  background: 'white', cursor: 'pointer', fontSize: 15, color: '#111111',
+                }}>
                   Abbrechen
                 </button>
-                <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: farbe, color: 'white', fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontSize: 15, opacity: saving ? 0.7 : 1 }}>
+                <button onClick={handleSave} disabled={saving} style={{
+                  flex: 2, padding: 12, borderRadius: 8, border: 'none',
+                  backgroundColor: farbe, color: 'white', fontWeight: 700,
+                  cursor: saving ? 'default' : 'pointer', fontSize: 15, opacity: saving ? 0.7 : 1,
+                }}>
                   {saving ? 'Speichern...' : 'Veröffentlichen'}
                 </button>
               </div>
@@ -213,10 +223,15 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
                 alignItems: 'flex-start', gap: 12, position: 'relative',
               }}>
                 {b.Bild_URL ? (
-                  <img src={b.Bild_URL} alt="" style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                  <img src={b.Bild_URL} alt=""
+                    style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
                     onError={e => (e.currentTarget.style.display = 'none')} />
                 ) : (
-                  <div style={{ width: 64, height: 64, borderRadius: 8, background: `linear-gradient(135deg, ${farbe}, rgba(196,22,28,0.5))`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{
+                    width: 64, height: 64, borderRadius: 8,
+                    background: `linear-gradient(135deg, ${farbe}, rgba(196,22,28,0.5))`,
+                    flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
                     {branding.logoUrl
                       ? <img src={branding.logoUrl} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} />
                       : <span style={{ fontSize: 24 }}>🦂</span>
