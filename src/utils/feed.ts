@@ -183,7 +183,7 @@ export async function fetchFeed(): Promise<FeedRow[]> {
     .map(normalizeRow)
     .filter((item: FeedRow) => !item.deleted)
     // ✅ Neueste Beiträge zuerst
-    .sort((a, b) => {
+    .sort((a: FeedRow, b: FeedRow) => {
       const at = a.date ? a.date.getTime() : 0;
       const bt = b.date ? b.date.getTime() : 0;
       return bt - at;
