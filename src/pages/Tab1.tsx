@@ -1,6 +1,5 @@
 // src/pages/Tab1.tsx
 import React, { useCallback, useEffect, useState } from "react";
-import { IonContent, IonPage, IonRefresher, IonRefresherContent } from "@ionic/react";
 import AppHeader from "../components/AppHeader";
 import FeedList from "../components/feed/FeedList";
 import { fetchFeed, type FeedRow } from "../utils/feed";
@@ -34,7 +33,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFar
   useEffect(() => { void load(); }, [load]);
 
   return (
-    <IonPage>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <AppHeader
         title={vereinName || "Scorpions Feed"}
         logoUrl={logoUrl}
@@ -44,15 +43,10 @@ const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFar
         loading={loading}
         onAdminClick={onAdminClick}
       />
-      <IonContent fullscreen scrollY={true} style={{ '--background': '#f0f0f0', '--overflow': 'scroll' } as any}>
-        <IonRefresher slot="fixed" onIonRefresh={async (ev) => { await load(); ev.detail.complete(); }}>
-          <IonRefresherContent />
-        </IonRefresher>
-        <div style={{ minHeight: '100%', paddingBottom: 20 }}>
-          <FeedList items={items} loading={loading} error={error} />
-        </div>
-      </IonContent>
-    </IonPage>
+      <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#f0f0f0' }}>
+        <FeedList items={items} loading={loading} error={error} />
+      </div>
+    </div>
   );
 };
 
