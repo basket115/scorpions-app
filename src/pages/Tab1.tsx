@@ -1,6 +1,6 @@
 // src/pages/Tab1.tsx
 import React, { useCallback, useEffect, useState } from "react";
-import { IonPage, IonRefresher, IonRefresherContent } from "@ionic/react";
+import { IonContent, IonPage, IonRefresher, IonRefresherContent } from "@ionic/react";
 import AppHeader from "../components/AppHeader";
 import FeedList from "../components/feed/FeedList";
 import { fetchFeed, type FeedRow } from "../utils/feed";
@@ -44,12 +44,12 @@ const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFar
         loading={loading}
         onAdminClick={onAdminClick}
       />
-      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any, height: '100%', position: 'relative', backgroundColor: '#f0f0f0' }}>
+      <IonContent style={{ '--background': '#f0f0f0' } as any}>
         <IonRefresher slot="fixed" onIonRefresh={async (ev) => { await load(); ev.detail.complete(); }}>
           <IonRefresherContent />
         </IonRefresher>
         <FeedList items={items} loading={loading} error={error} />
-      </div>
+      </IonContent>
     </IonPage>
   );
 };
