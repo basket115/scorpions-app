@@ -44,7 +44,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFar
         loading={loading}
         onAdminClick={onAdminClick}
       />
-      <IonContent fullscreen>
+      <IonContent fullscreen scrollY={true} style={{ '--overflow': 'scroll' }}>
         <IonRefresher slot="fixed" onIonRefresh={async (ev) => { await load(); ev.detail.complete(); }}>
           <IonRefresherContent />
         </IonRefresher>
