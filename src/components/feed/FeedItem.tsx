@@ -6,7 +6,7 @@ type Props = { item: FeedRow };
 
 const RED = '#C4161C';
 const WHITE = '#FFFFFF';
-const CARD_BG = 'linear-gradient(180deg, rgba(196,22,28,0.78), rgba(196,22,28,0.26))';
+const CARD_BG = '#C4161C';
 
 function getYouTubeEmbedUrl(url?: string): string | null {
   if (!url) return null;
