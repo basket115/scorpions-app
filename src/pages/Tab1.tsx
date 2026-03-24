@@ -44,7 +44,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFar
         loading={loading}
         onAdminClick={onAdminClick}
       />
-      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any, height: '100%', position: 'relative' }}>
+      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any, height: '100%', position: 'relative', backgroundColor: '#f0f0f0' }}>
         <IonRefresher slot="fixed" onIonRefresh={async (ev) => { await load(); ev.detail.complete(); }}>
           <IonRefresherContent />
         </IonRefresher>
