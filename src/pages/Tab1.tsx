@@ -44,11 +44,13 @@ const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFar
         loading={loading}
         onAdminClick={onAdminClick}
       />
-      <IonContent style={{ '--background': '#f0f0f0' } as any}>
+      <IonContent fullscreen scrollY={true} style={{ '--background': '#f0f0f0', '--overflow': 'scroll' } as any}>
         <IonRefresher slot="fixed" onIonRefresh={async (ev) => { await load(); ev.detail.complete(); }}>
           <IonRefresherContent />
         </IonRefresher>
-        <FeedList items={items} loading={loading} error={error} />
+        <div style={{ minHeight: '100%', paddingBottom: 20 }}>
+          <FeedList items={items} loading={loading} error={error} />
+        </div>
       </IonContent>
     </IonPage>
   );
