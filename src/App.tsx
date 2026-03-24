@@ -89,56 +89,46 @@ const App: React.FC = () => {
     }
   };
 
-  if (screen === 'login') {
-    return (
-      <IonApp>
-        <div style={{ minHeight: '100vh', background: branding.themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            {branding.logoUrl && (
-              <img src={branding.logoUrl} alt="Logo" style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'contain', background: 'rgba(255,255,255,0.15)', padding: 8 }} />
-            )}
-            <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0 }}>{branding.vereinName} Admin</h2>
-            <input
-              type="password"
-              placeholder="Passwort"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: 'none', fontSize: 16, fontFamily: 'inherit', boxSizing: 'border-box' as const, color: '#111111' }}
-            />
-            {error && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{error}</p>}
-            <button onClick={handleLogin} style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: branding.themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Einloggen
-            </button>
-            <button onClick={() => { setScreen('feed'); setPassword(''); setError(''); }} style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
-              ← Zurück zur App
-            </button>
-          </div>
-        </div>
-      </IonApp>
-    );
-  }
-
-  if (screen === 'admin') {
-    return (
-      <IonApp>
-        <BrandingContext.Provider value={branding}>
-          <AdminPage onBack={() => setScreen('feed')} branding={branding} />
-        </BrandingContext.Provider>
-      </IonApp>
-    );
-  }
-
   return (
     <BrandingContext.Provider value={branding}>
       <IonApp>
-        <Tab1
-          onAdminClick={() => setScreen('login')}
-          logoUrl={branding.logoUrl}
-          sponsorLogoUrl={branding.sponsorLogoUrl}
-          themaFarbe={branding.themaFarbe}
-          vereinName={branding.vereinName}
-        />
+        {screen === 'feed' && (
+          <Tab1
+            onAdminClick={() => setScreen('login')}
+            logoUrl={branding.logoUrl}
+            sponsorLogoUrl={branding.sponsorLogoUrl}
+            themaFarbe={branding.themaFarbe}
+            vereinName={branding.vereinName}
+          />
+        )}
+        {screen === 'admin' && (
+          <AdminPage onBack={() => setScreen('feed')} branding={branding} />
+        )}
+        {screen === 'login' && (
+          <div style={{ minHeight: '100vh', background: branding.themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+              {branding.logoUrl && (
+                <img src={branding.logoUrl} alt="Logo" style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'contain', background: 'rgba(255,255,255,0.15)', padding: 8 }} />
+              )}
+              <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0 }}>{branding.vereinName} Admin</h2>
+              <input
+                type="password"
+                placeholder="Passwort"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: 'none', fontSize: 16, fontFamily: 'inherit', boxSizing: 'border-box' as const, color: '#111111' }}
+              />
+              {error && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{error}</p>}
+              <button onClick={handleLogin} style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: branding.themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Einloggen
+              </button>
+              <button onClick={() => { setScreen('feed'); setPassword(''); setError(''); }} style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
+                ← Zurück zur App
+              </button>
+            </div>
+          </div>
+        )}
       </IonApp>
     </BrandingContext.Provider>
   );
