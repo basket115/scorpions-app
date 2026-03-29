@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { IonSpinner } from '@ionic/react';
 
 const API = 'https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec';
-const KUNDEN_ID = 'V002';
+const KUNDEN_ID = 'V046';
 
 type Beitrag = { id: string; Titel: string; Text: string; Bild_URL?: string; Datum?: string; Kategorie?: string; };
 type Branding = { themaFarbe: string; logoUrl: string; sponsorLogoUrl: string; passwort: string; vereinName: string; };
@@ -90,40 +90,30 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
         <span style={{ color: 'white', fontWeight: 700, fontSize: 18 }}>{branding.vereinName} Admin</span>
         <button onClick={load} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer' }}>↻</button>
       </div>
-
       <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#f0f0f0', padding: 14 }}>
         {success && <div style={{ background: '#34a853', color: 'white', padding: '10px 16px', borderRadius: 10, marginBottom: 12, fontWeight: 700 }}>{success}</div>}
-
         {!showForm && !showSponsorForm && (
           <>
-            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: farbe, border: 'none', color: 'white', fontWeight: 700, fontSize: 16, cursor: 'pointer', marginBottom: 10 }}>
-              ⊕ NEUEN BEITRAG ERSTELLEN
-            </button>
-            <button onClick={() => setShowSponsorForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: 'white', border: `2px solid ${farbe}`, color: farbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', marginBottom: 16 }}>
-              🤝 SPONSOR EINRICHTEN
-            </button>
+            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: farbe, border: 'none', color: 'white', fontWeight: 700, fontSize: 16, cursor: 'pointer', marginBottom: 10 }}>⊕ NEUEN BEITRAG ERSTELLEN</button>
+            <button onClick={() => setShowSponsorForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: 'white', border: `2px solid ${farbe}`, color: farbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', marginBottom: 16 }}>🤝 SPONSOR EINRICHTEN</button>
           </>
         )}
-
         {showSponsorForm && (
           <div style={{ background: 'white', borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.10)' }}>
             <h3 style={{ marginTop: 0 }}>🤝 Sponsor einrichten</h3>
-            <label style={{ fontSize: 13, color: '#666', marginBottom: 4, display: 'block' }}>Logo URL (Imgur .jpeg empfohlen)</label>
+            <label style={{ fontSize: 13, color: '#666', marginBottom: 4, display: 'block' }}>Logo URL</label>
             <input placeholder="https://i.imgur.com/..." value={sponsor.logoUrl} onChange={e => { setSponsor(s => ({ ...s, logoUrl: e.target.value })); setSponsorLogoPreview(e.target.value); }} style={inputStyle} />
             {sponsorLogoPreview && <img src={sponsorLogoPreview} alt="Logo Vorschau" style={{ width: 60, height: 60, objectFit: 'contain', borderRadius: 8, marginBottom: 10, border: '1px solid #eee' }} onError={() => setSponsorLogoPreview('')} />}
             <label style={{ fontSize: 13, color: '#666', marginBottom: 4, display: 'block' }}>Banner Text</label>
             <textarea placeholder="Beschreibung des Sponsors..." value={sponsor.bannerText} onChange={e => setSponsor(s => ({ ...s, bannerText: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' as const }} />
-            <label style={{ fontSize: 13, color: '#666', marginBottom: 4, display: 'block' }}>Link URL (Mehr erfahren →)</label>
+            <label style={{ fontSize: 13, color: '#666', marginBottom: 4, display: 'block' }}>Link URL</label>
             <input placeholder="https://www.sponsor.de" value={sponsor.linkUrl} onChange={e => setSponsor(s => ({ ...s, linkUrl: e.target.value }))} style={inputStyle} />
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowSponsorForm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ddd', background: 'white', cursor: 'pointer', color: '#111' }}>Abbrechen</button>
-              <button onClick={handleSaveSponsor} disabled={savingSponsor} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: farbe, color: 'white', fontWeight: 700, cursor: 'pointer' }}>
-                {savingSponsor ? 'Speichern...' : '💾 Sponsor speichern'}
-              </button>
+              <button onClick={handleSaveSponsor} disabled={savingSponsor} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: farbe, color: 'white', fontWeight: 700, cursor: 'pointer' }}>{savingSponsor ? 'Speichern...' : '💾 Sponsor speichern'}</button>
             </div>
           </div>
         )}
-
         {showForm && (
           <div style={{ background: 'white', borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.10)' }}>
             <h3 style={{ marginTop: 0 }}>📝 Neuer Beitrag</h3>
@@ -136,13 +126,10 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
             </select>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ddd', background: 'white', cursor: 'pointer', color: '#111' }}>Abbrechen</button>
-              <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: farbe, color: 'white', fontWeight: 700, cursor: 'pointer' }}>
-                {saving ? 'Speichern...' : 'Veröffentlichen'}
-              </button>
+              <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: farbe, color: 'white', fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Speichern...' : 'Veröffentlichen'}</button>
             </div>
           </div>
         )}
-
         {loading ? (
           <div style={{ textAlign: 'center', padding: 32 }}><IonSpinner name="crescent" /></div>
         ) : beitraege.length === 0 ? (
