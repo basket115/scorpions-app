@@ -18,31 +18,18 @@ const Tab1: React.FC<Props> = ({ onAdminClick, logoUrl, sponsorLogoUrl, themaFar
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const rows = await fetchFeed();
-      setItems(rows);
-    } catch (e: any) {
-      setError(e?.message ? String(e.message) : "Unbekannter Fehler");
-    } finally {
-      setLoading(false);
-    }
+    setError(null); setLoading(true);
+    try { const rows = await fetchFeed(); setItems(rows); }
+    catch (e: any) { setError(e?.message ? String(e.message) : "Unbekannter Fehler"); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <AppHeader
-        title={vereinName || "Scorpions Feed"}
-        logoUrl={logoUrl}
-        sponsorLogoUrl={sponsorLogoUrl}
-        themaFarbe={themaFarbe}
-        onRefresh={load}
-        loading={loading}
-        onAdminClick={onAdminClick}
-      />
+      <AppHeader title={vereinName || "SG Gierath"} logoUrl={logoUrl} sponsorLogoUrl={sponsorLogoUrl}
+        themaFarbe={themaFarbe} onRefresh={load} loading={loading} onAdminClick={onAdminClick} />
       <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#f0f0f0' }}>
         <FeedList items={items} loading={loading} error={error} />
       </div>
