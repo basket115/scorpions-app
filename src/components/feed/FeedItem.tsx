@@ -8,7 +8,7 @@ const RED = '#C4161C';
 const WHITE = '#FFFFFF';
 
 const API = 'https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec';
-const KUNDEN_ID = 'V002';
+const KUNDEN_ID = 'V046'; // ← nur das ändern!
 
 type SponsorData = { logoUrl?: string; bannerText?: string; bannerBildUrl?: string; linkUrl?: string };
 
