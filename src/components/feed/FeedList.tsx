@@ -9,30 +9,30 @@ type Props = {
   items: FeedRow[];
   loading?: boolean;
   error?: string | null;
+  activeKategorie?: string;
 };
 
 function sortNewestFirst(a: FeedRow, b: FeedRow): number {
   const at = a.date ? a.date.getTime() : -Infinity;
   const bt = b.date ? b.date.getTime() : -Infinity;
-
-  // Neueste zuerst
   if (bt !== at) return bt - at;
-
-  // Stabiler Fallback: p-Nummer (p10 > p2)
   const anum = Number(String(a.id).replace(/[^\d]/g, ""));
   const bnum = Number(String(b.id).replace(/[^\d]/g, ""));
   if (Number.isFinite(anum) && Number.isFinite(bnum) && bnum !== anum) return bnum - anum;
-
-  // Letzter Fallback: String-Vergleich
   return String(b.id).localeCompare(String(a.id));
 }
 
-const FeedList: React.FC<Props> = ({ items, loading, error }) => {
+const FeedList: React.FC<Props> = ({ items, loading, error, activeKategorie }) => {
   const sorted = useMemo(() => {
     const copy = [...items];
     copy.sort(sortNewestFirst);
+    if (activeKategorie) {
+      return copy.filter(item =>
+        String(item.kategorie || '').trim() === activeKategorie
+      );
+    }
     return copy;
-  }, [items]);
+  }, [items, activeKategorie]);
 
   if (loading) {
     return (
@@ -52,7 +52,11 @@ const FeedList: React.FC<Props> = ({ items, loading, error }) => {
   }
 
   if (!sorted.length) {
-    return <div style={{ padding: 16, opacity: 0.75 }}>Keine Einträge</div>;
+    return (
+      <div style={{ padding: 16, opacity: 0.75 }}>
+        {activeKategorie ? `Keine Einträge in "${activeKategorie}"` : 'Keine Einträge'}
+      </div>
+    );
   }
 
   return (
