@@ -5,7 +5,7 @@ import Tab1 from './pages/Tab1';
 import AdminPage from './pages/AdminPage';
 
 const API = 'https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec';
-const KUNDEN_ID = 'V046';
+const KUNDEN_ID = 'V002';
 const FALLBACK_COLOR = '#C4161C';
 const FALLBACK_LOGO = '/logo.png';
 
@@ -19,7 +19,7 @@ export type Branding = {
 
 export const BrandingContext = createContext<Branding>({
   themaFarbe: FALLBACK_COLOR, logoUrl: FALLBACK_LOGO, sponsorLogoUrl: '', passwort: '',
-  vereinName: 'SG Gierath', webUrl: '', facebookUrl: '', instagramUrl: '', youtubeUrl: '', tiktokUrl: '',
+  vereinName: 'Scorpions SG Gierath', webUrl: '', facebookUrl: '', instagramUrl: '', youtubeUrl: '', tiktokUrl: '',
 });
 
 const App: React.FC = () => {
@@ -28,7 +28,7 @@ const App: React.FC = () => {
   const [error, setError] = useState('');
   const [branding, setBranding] = useState<Branding>({
     themaFarbe: FALLBACK_COLOR, logoUrl: FALLBACK_LOGO, sponsorLogoUrl: '',
-    passwort: 'sggierath-admin', vereinName: 'SG Gierath',
+    passwort: 'sggierath-admin', vereinName: 'Scorpions SG Gierath',
     webUrl: '', facebookUrl: '', instagramUrl: '', youtubeUrl: '', tiktokUrl: '',
   });
 
@@ -38,7 +38,7 @@ const App: React.FC = () => {
       .then(d => {
         if (!d?.success || !d?.branding) return;
         const b = d.branding;
-        const vereinName = b.Verein_Name || b.verein_name || 'SG Gierath';
+        const vereinName = b.Verein_Name || b.verein_name || 'Scorpions SG Gierath';
         setBranding({
           themaFarbe: b.Thema_Farbe || FALLBACK_COLOR,
           logoUrl: b.Logo_Verein || b.Logo_verein || FALLBACK_LOGO,
