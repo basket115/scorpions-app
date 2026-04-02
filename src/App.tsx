@@ -28,7 +28,7 @@ const App: React.FC = () => {
   const [error, setError] = useState('');
   const [branding, setBranding] = useState<Branding>({
     themaFarbe: FALLBACK_COLOR, logoUrl: FALLBACK_LOGO, sponsorLogoUrl: '',
-    passwort: 'sggierath-admin', vereinName: 'Scorpions SG Gierath',
+    passwort: 'scorpions-admin', vereinName: 'Scorpions SG Gierath',
     webUrl: '', facebookUrl: '', instagramUrl: '', youtubeUrl: '', tiktokUrl: '',
   });
 
