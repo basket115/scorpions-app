@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { IonSpinner } from '@ionic/react';
 
 const API = 'https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec';
-const KUNDEN_ID = 'V046';
+const KUNDEN_ID = 'V002';
 
 type Beitrag = { id: string; Titel: string; Text: string; Bild_URL?: string; Datum?: string; Kategorie?: string; };
 type Branding = { themaFarbe: string; logoUrl: string; sponsorLogoUrl: string; passwort: string; vereinName: string; };
