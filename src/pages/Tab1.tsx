@@ -1,7 +1,6 @@
 // src/pages/Tab1.tsx v15 — Scorpions: Edit + Cloudinary + Footer + Bildoptimierung
 import React, { useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import AppHeader from '../components/AppHeader';
-import CategoriesComponent from '../components/CategoriesComponent';
 import { BrandingContext, fixGoogleDriveUrl } from '../App';
 
 const API_EXEC_URL =
@@ -387,7 +386,14 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
           </div>
         )}
         {demoTage && <div style={{ backgroundColor: '#f0a500', borderRadius: 10, padding: '12px 16px', marginBottom: 12, textAlign: 'center', fontWeight: 'bold', color: 'white', fontSize: 15 }}>⏱ Demo läuft noch {demoTage} Tage</div>}
-        {sichtbareKategorien.length > 0 && <CategoriesComponent categories={sichtbareKategorien} selectedCategory={activeKategorie} onSelect={setActiveKategorie} themaFarbe={themaFarbe} />}
+        {sichtbareKategorien.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 12 }}>
+          {sichtbareKategorien.map(kat => (
+            <button key={kat} onClick={() => setActiveKategorie(activeKategorie === kat ? '' : kat)}
+              style={{ padding: '6px 14px', borderRadius: 20, border: `2px solid ${themaFarbe}`, background: activeKategorie === kat ? themaFarbe : 'white', color: activeKategorie === kat ? 'white' : themaFarbe, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {kat}
+            </button>
+          ))}
+        </div>}
         {canPost && !showForm && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
             <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: 'white', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>⊕ NEUEN BEITRAG ERSTELLEN</button>
