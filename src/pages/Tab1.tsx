@@ -246,7 +246,7 @@ const KategorienDropdown: React.FC<{
   return (
     <div style={{ position: 'relative', marginBottom: 12 }}>
       <button onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: `1px solid #ddd`, background: 'white', color: '#111', fontWeight: 600, fontSize: 15, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
+        style={{ width: "100%", padding: "14px 18px", borderRadius: 10, border: `2px solid ${themaFarbe}`, background: "white", color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
         <span>{label}</span>
         <span style={{ color: themaFarbe, fontSize: 18 }}>{open ? '▲' : '▼'}</span>
       </button>
