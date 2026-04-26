@@ -481,11 +481,11 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
       </div>
 
       {/* Footer */}
-      <div style={{ background: themaFarbe, padding: '14px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
-        <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, textDecoration: 'none', fontWeight: 500 }}>📋 Nutzungsbedingungen</a>
-        <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, textDecoration: 'none', fontWeight: 500 }}>📸 Bildverwaltung</a>
-        <a href="mailto:info@onlang.de" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, textDecoration: 'none', fontWeight: 500 }}>✉️ info@onlang.de</a>
-        <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>© 2026 ONLANG</span>
+      <div style={{ background: themaFarbe, padding: '16px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
+        <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>📋 Nutzungsbedingungen</a>
+        <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>📸 Bildverwaltung</a>
+        <a href="mailto:info@onlang.de" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>✉️ info@onlang.de</a>
+        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600 }}>© 2026 ONLANG</span>
       </div>
     </div>
   );
