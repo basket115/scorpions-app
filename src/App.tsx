@@ -1,15 +1,13 @@
-// src/App.tsx — Scorpions v2: Augen-Symbol + ReadOnly-Fix + Drive-URL-Fix
+// src/App.tsx — Scorpions v3: Zahnrad immer sichtbar + Team-Login
 import React, { useState, useEffect, createContext } from 'react';
 import { IonApp } from '@ionic/react';
 import Tab1 from './pages/Tab1';
-
 
 export const BrandingContext = createContext<any>(null);
 
 const API_EXEC_URL =
   "https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec";
 
-// ── Google Drive URL Auto-Konvertierung ───────────────────────
 export function fixGoogleDriveUrl(url: string): string {
   if (!url) return url;
   const match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
@@ -25,7 +23,6 @@ function initOneSignal(appId: string) {
   });
 }
 
-// ── Passwort-Input mit Augen-Symbol ───────────────────────────
 const PasswordInput: React.FC<{
   value: string;
   onChange: (val: string) => void;
@@ -176,9 +173,10 @@ const App: React.FC = () => {
     } catch { setError('Login Fehler'); }
   };
 
-  // ── ReadOnly-Check ────────────────────────────────────────
+  // ── ReadOnly-Check: Zahnrad nur bei ReadOnly=FALSE ──────────
   const isReadOnly = String(branding?.ReadOnly || '').toUpperCase() === 'TRUE';
-  const isAdmin = !isReadOnly;
+  // Zahnrad anzeigen wenn NICHT ReadOnly — unabhängig vom Team-Login
+  const showGear = !isReadOnly && !!branding?.Passwort;
 
   const themaFarbe = branding?.Thema_Farbe || '#111111';
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
@@ -191,12 +189,24 @@ const App: React.FC = () => {
     );
   }
 
+  // ── Team-Login Screen — ABER mit Zahnrad-Button oben rechts ─
   if (hasTeamLogin && showTeamLogin && !teamLoginDone) {
     return (
       <IonApp>
-        <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
+          {/* Zahnrad oben rechts auch auf Login-Screen */}
+          {showGear && (
+            <button onClick={() => setShowLogin(true)}
+              style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 10, padding: 10, cursor: 'pointer', color: 'white' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+              </svg>
+            </button>
+          )}
           <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            {logoUrl && <img src={logoUrl} alt="Logo" style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'contain', background: 'rgba(255,255,255,0.15)', padding: 8 }} />}
+            {logoUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+              <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>}
             <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Sport App'}</h2>
             <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>Bitte mit deinem Team-Passwort einloggen</p>
             <PasswordInput value={teamPassword} onChange={setTeamPassword} onEnter={handleTeamLogin} />
@@ -205,18 +215,25 @@ const App: React.FC = () => {
               style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
               {teamLoading ? 'Einloggen...' : 'Einloggen'}
             </button>
+            {/* Direkt zur App ohne Team-Login */}
+            <button onClick={() => { setShowTeamLogin(false); setTeamLoginDone(true); }}
+              style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Weiter ohne Login →
+            </button>
           </div>
         </div>
       </IonApp>
     );
   }
 
-  if (isAdmin && showLogin && !isAuthenticated) {
+  if (showLogin && !isAuthenticated) {
     return (
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            {logoUrl && <img src={logoUrl} alt="Logo" style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'contain', background: 'rgba(255,255,255,0.15)', padding: 8 }} />}
+            {logoUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+              <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>}
             <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Admin Login'}</h2>
             <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>Admin Login</p>
             <PasswordInput value={password} onChange={setPassword} onEnter={handleLogin} />
@@ -241,7 +258,7 @@ const App: React.FC = () => {
       teamRolle, teamMannschaft, teamId, teamLoginDone, handleTeamLogout,
     }}>
       <IonApp>
-        <Tab1 onAdminClick={isAdmin ? () => setShowLogin(true) : undefined} />
+        <Tab1 onAdminClick={showGear ? () => setShowLogin(true) : undefined} />
       </IonApp>
     </BrandingContext.Provider>
   );
