@@ -3,17 +3,6 @@ import React, { useState, useEffect, createContext } from 'react';
 import { IonApp } from '@ionic/react';
 import Tab1 from './pages/Tab1';
 
-import '@ionic/react/css/core.css';
-import '@ionic/react/css/normalize.css';
-import '@ionic/react/css/structure.css';
-import '@ionic/react/css/typography.css';
-import '@ionic/react/css/padding.css';
-import '@ionic/react/css/float-elements.css';
-import '@ionic/react/css/text-alignment.css';
-import '@ionic/react/css/text-transformation.css';
-import '@ionic/react/css/flex-utils.css';
-import '@ionic/react/css/display.css';
-import './theme/variables.css';
 
 export const BrandingContext = createContext<any>(null);
 
@@ -118,21 +107,6 @@ const App: React.FC = () => {
           const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
           if (favicon) favicon.href = logoUrl;
           if (appleFavicon) appleFavicon.href = logoUrl;
-        }
-
-        const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-        if (manifestLink) {
-          const manifest = {
-            short_name: vereinName, name: vereinName + ' App',
-            icons: [{ src: logoUrl || '/logo.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-                    { src: logoUrl || '/logo.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
-            start_url: '/?kunde=' + kundenId, display: 'standalone',
-            background_color: themaFarbe, theme_color: themaFarbe
-          };
-          const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-          const oldUrl = manifestLink.href;
-          manifestLink.href = URL.createObjectURL(blob);
-          if (oldUrl.startsWith('blob:')) URL.revokeObjectURL(oldUrl);
         }
         const osAppId = data.branding?.OneSignal_App_ID || '';
         if (osAppId) initOneSignal(osAppId);
