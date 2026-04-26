@@ -175,8 +175,8 @@ const App: React.FC = () => {
 
   // ── ReadOnly-Check: Zahnrad nur bei ReadOnly=FALSE ──────────
   const isReadOnly = String(branding?.ReadOnly || '').toUpperCase() === 'TRUE';
-  // Zahnrad anzeigen wenn NICHT ReadOnly — unabhängig vom Team-Login
-  const showGear = !isReadOnly && !!branding?.Passwort;
+  // Zahnrad anzeigen wenn NICHT ReadOnly — unabhängig vom Team-Login oder Passwort
+  const showGear = !isReadOnly;
 
   const themaFarbe = branding?.Thema_Farbe || '#111111';
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
