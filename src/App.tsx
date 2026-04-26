@@ -190,7 +190,7 @@ const App: React.FC = () => {
   }
 
   // ── Team-Login Screen — ABER mit Zahnrad-Button oben rechts ─
-  if (hasTeamLogin && showTeamLogin && !teamLoginDone) {
+ if (false && hasTeamLogin && showTeamLogin && !teamLoginDone) {
     return (
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
