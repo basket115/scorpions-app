@@ -1,4 +1,4 @@
-// src/pages/Tab1.tsx v15 — Scorpions: Edit + Cloudinary + Footer + Bildoptimierung
+// src/pages/Tab1.tsx v16 — Scorpions: Dropdown wie BBK
 import React, { useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import AppHeader from '../components/AppHeader';
 import { BrandingContext, fixGoogleDriveUrl } from '../App';
@@ -12,7 +12,6 @@ function getYouTubeEmbedUrl(url: string): string | null {
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null;
 }
 
-// ─── Cloudinary URL Optimierung ──────────────────────────────
 function optimizeImageUrl(url: string): string {
   if (!url) return url;
   if (url.includes('cloudinary.com')) {
@@ -21,7 +20,6 @@ function optimizeImageUrl(url: string): string {
   return fixGoogleDriveUrl(url);
 }
 
-// ─── Cloudinary Upload ────────────────────────────────────────
 const CLOUDINARY_CLOUD = 'dhn90jugp';
 const CLOUDINARY_PRESET = 'onlang_upload';
 
@@ -136,28 +134,6 @@ const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onCl
         <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>📸 Bild-URL Anleitung</h3>
         <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
       </div>
-      <div style={{ fontSize: 14, lineHeight: 1.6, color: '#333' }}>
-        <div style={{ background: '#f8f8f8', borderRadius: 10, padding: 12, marginBottom: 10 }}>
-          <p style={{ margin: '0 0 8px', fontWeight: 600, color: themaFarbe }}>Option 1: Imgur (empfohlen)</p>
-          <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13 }}>
-            <li>Gehe zu <strong>imgur.com</strong></li>
-            <li>Klick auf <strong>"New Post"</strong></li>
-            <li>Bild hochladen → Rechtsklick → <strong>"Bild-Adresse kopieren"</strong></li>
-            <li>URL hier einfügen</li>
-          </ol>
-        </div>
-        <div style={{ background: '#E8F4FD', borderRadius: 10, padding: 12, marginBottom: 10 }}>
-          <p style={{ margin: '0 0 8px', fontWeight: 600, color: '#1a73e8' }}>Option 2: Google Drive ✅</p>
-          <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13 }}>
-            <li>Bild in <strong>Google Drive</strong> hochladen</li>
-            <li>Rechtsklick → <strong>"Link kopieren"</strong></li>
-            <li>URL hier einfügen — <strong>wird automatisch umgewandelt!</strong> 🔄</li>
-          </ol>
-        </div>
-        <div style={{ background: '#FFF3EC', borderRadius: 10, padding: 10 }}>
-          <p style={{ margin: 0, fontSize: 13, color: themaFarbe }}><strong>Empfohlene Größe:</strong> 1200 x 675 px (16:9 Format)</p>
-        </div>
-      </div>
       <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Verstanden ✓</button>
     </div>
   </div>
@@ -258,6 +234,40 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
   );
 };
 
+// ─── Dropdown Kategorien (wie BBK) ────────────────────────────
+const KategorienDropdown: React.FC<{
+  kategorien: string[];
+  selected: string;
+  onSelect: (k: string) => void;
+  themaFarbe: string;
+}> = ({ kategorien, selected, onSelect, themaFarbe }) => {
+  const [open, setOpen] = useState(false);
+  const label = selected || 'Alle Abteilungen';
+  return (
+    <div style={{ position: 'relative', marginBottom: 12 }}>
+      <button onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: `1px solid #ddd`, background: 'white', color: '#111', fontWeight: 600, fontSize: 15, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
+        <span>{label}</span>
+        <span style={{ color: themaFarbe, fontSize: 18 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 100, overflow: 'hidden', marginTop: 4 }}>
+          <div onClick={() => { onSelect(''); setOpen(false); }}
+            style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === '' ? 700 : 400, color: selected === '' ? themaFarbe : '#111', background: selected === '' ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
+            Alle Abteilungen
+          </div>
+          {kategorien.map(k => (
+            <div key={k} onClick={() => { onSelect(k); setOpen(false); }}
+              style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === k ? 700 : 400, color: selected === k ? themaFarbe : '#111', background: selected === k ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
+              {k}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 type Props = { onAdminClick?: () => void };
 
 const Tab1: React.FC<Props> = ({ onAdminClick }) => {
@@ -278,7 +288,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const [editBeitrag, setEditBeitrag] = useState<any | null>(null);
 
   const b = branding as any;
-  const themaFarbe = b?.Thema_Farbe || '#111111';
+  const themaFarbe = b?.Thema_Farbe || '#b30000';
   const logoUrl = b?.Logo_verein || b?.Logo_Verein || '';
   const sponsorLogoUrl = b?.Logo_Sponsor || b?.Logo_sponsor || '';
   const kundenId: string = String(branding?.Kunden_ID || '').trim();
@@ -386,14 +396,17 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
           </div>
         )}
         {demoTage && <div style={{ backgroundColor: '#f0a500', borderRadius: 10, padding: '12px 16px', marginBottom: 12, textAlign: 'center', fontWeight: 'bold', color: 'white', fontSize: 15 }}>⏱ Demo läuft noch {demoTage} Tage</div>}
-        {sichtbareKategorien.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 12 }}>
-          {sichtbareKategorien.map(kat => (
-            <button key={kat} onClick={() => setActiveKategorie(activeKategorie === kat ? '' : kat)}
-              style={{ padding: '6px 14px', borderRadius: 20, border: `2px solid ${themaFarbe}`, background: activeKategorie === kat ? themaFarbe : 'white', color: activeKategorie === kat ? 'white' : themaFarbe, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {kat}
-            </button>
-          ))}
-        </div>}
+
+        {/* ─── Dropdown wie BBK ─── */}
+        {sichtbareKategorien.length > 0 && !isTeam && (
+          <KategorienDropdown
+            kategorien={sichtbareKategorien}
+            selected={activeKategorie}
+            onSelect={setActiveKategorie}
+            themaFarbe={themaFarbe}
+          />
+        )}
+
         {canPost && !showForm && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
             <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: 'white', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>⊕ NEUEN BEITRAG ERSTELLEN</button>
