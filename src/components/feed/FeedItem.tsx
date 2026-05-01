@@ -41,13 +41,17 @@ function getYouTubeEmbedUrl(url?: string): string | null {
 
 // ─── Social Bar ───────────────────────────────────────────────
 const SocialBar: React.FC = () => {
-  const branding = useContext(BrandingContext);
-  const web = branding?.webUrl || '';
-  const fb  = branding?.facebookUrl || '';
-  const ig  = branding?.instagramUrl || '';
-  const yt  = branding?.youtubeUrl || '';
-  const tt  = branding?.tiktokUrl || '';
-  const wa  = (branding as any)?.whatsappUrl || ''; // ★ NEU: WhatsApp
+  const ctx = useContext(BrandingContext);
+
+  // ★ FIX: Liest sowohl aus dem Context (neue App.tsx) als auch
+  //         direkt aus branding-Objekt (alte App.tsx) – beides funktioniert
+  const b = ctx?.branding || {};
+  const web = ctx?.webUrl       || b?.WEB_URL        || '';
+  const fb  = ctx?.facebookUrl  || b?.Facebook_URL   || '';
+  const ig  = ctx?.instagramUrl || b?.Instagram_URL  || b?.Instragram_URL || '';
+  const yt  = ctx?.youtubeUrl   || b?.Youtube_URL    || '';
+  const tt  = ctx?.tiktokUrl    || b?.TikTok_URL     || '';
+  const wa  = ctx?.whatsappUrl  || b?.WhatsApp_URL   || ''; // ★ WhatsApp
 
   if (!web && !fb && !ig && !yt && !tt && !wa) return null;
 
@@ -92,8 +96,7 @@ const SocialBar: React.FC = () => {
           </svg>
         </a>
       )}
-
-      {/* ★ NEU: WhatsApp Icon */}
+      {/* ★ WhatsApp Icon */}
       {wa && (
         <a href={wa} target="_blank" rel="noopener noreferrer" style={{ lineHeight: 0 }}>
           <svg width="36" height="36" viewBox="0 0 24 24" fill="#25D366">
