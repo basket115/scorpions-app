@@ -173,9 +173,7 @@ const App: React.FC = () => {
     } catch { setError('Login Fehler'); }
   };
 
-  // ── ReadOnly-Check: Zahnrad nur bei ReadOnly=FALSE ──────────
   const isReadOnly = String(branding?.ReadOnly || '').toUpperCase() === 'TRUE';
-  // Zahnrad anzeigen wenn NICHT ReadOnly — unabhängig vom Team-Login oder Passwort
   const showGear = !isReadOnly;
 
   const themaFarbe = branding?.Thema_Farbe || '#111111';
@@ -189,12 +187,10 @@ const App: React.FC = () => {
     );
   }
 
-  // ── Team-Login Screen — ABER mit Zahnrad-Button oben rechts ─
- if (false && hasTeamLogin && showTeamLogin && !teamLoginDone) {
+  if (false && hasTeamLogin && showTeamLogin && !teamLoginDone) {
     return (
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
-          {/* Zahnrad oben rechts auch auf Login-Screen */}
           {showGear && (
             <button onClick={() => setShowLogin(true)}
               style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 10, padding: 10, cursor: 'pointer', color: 'white' }}>
@@ -215,7 +211,6 @@ const App: React.FC = () => {
               style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
               {teamLoading ? 'Einloggen...' : 'Einloggen'}
             </button>
-            {/* Direkt zur App ohne Team-Login */}
             <button onClick={() => { setShowTeamLogin(false); setTeamLoginDone(true); }}
               style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
               Weiter ohne Login →
@@ -254,8 +249,22 @@ const App: React.FC = () => {
 
   return (
     <BrandingContext.Provider value={{
-      branding, loading, reload, isAuthenticated,
-      teamRolle, teamMannschaft, teamId, teamLoginDone, handleTeamLogout,
+      branding,
+      loading,
+      reload,
+      isAuthenticated,
+      teamRolle,
+      teamMannschaft,
+      teamId,
+      teamLoginDone,
+      handleTeamLogout,
+      // ★ NEU: Social URLs direkt aus Branding-Daten mappen
+      webUrl:       branding?.WEB_URL       || branding?.webUrl       || '',
+      facebookUrl:  branding?.Facebook_URL  || branding?.facebookUrl  || '',
+      instagramUrl: branding?.Instagram_URL || branding?.Instragram_URL || branding?.instagramUrl || '',
+      youtubeUrl:   branding?.Youtube_URL   || branding?.youtubeUrl   || '',
+      tiktokUrl:    branding?.TikTok_URL    || branding?.tiktokUrl    || '',
+      whatsappUrl:  branding?.WhatsApp_URL  || branding?.Whatsapp_URL || branding?.whatsappUrl  || '', // ★ NEU
     }}>
       <IonApp>
         <Tab1 onAdminClick={showGear ? () => setShowLogin(true) : undefined} />
