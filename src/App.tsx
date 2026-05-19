@@ -6,7 +6,7 @@ import Tab1 from './pages/Tab1';
 export const BrandingContext = createContext<any>(null);
 
 const API_EXEC_URL =
-  /api/proxy
+ "/api/proxy";
 
 export function fixGoogleDriveUrl(url: string): string {
   if (!url) return url;
