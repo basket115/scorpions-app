@@ -4,7 +4,7 @@ import AppHeader from '../components/AppHeader';
 import { BrandingContext, fixGoogleDriveUrl } from '../App';
 
 const API_EXEC_URL =
-  "https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec";
+  '/api/proxy'
 
 function getYouTubeEmbedUrl(url: string): string | null {
   if (!url) return null;
