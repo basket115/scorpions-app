@@ -2,6 +2,8 @@
 import React, { useState, useEffect, createContext } from 'react';
 import { IonApp } from '@ionic/react';
 import Tab1 from './pages/Tab1';
+import { useLanguage } from './i18n/LanguageContext';
+import LanguageSwitcher from './i18n/LanguageSwitcher';
 
 export const BrandingContext = createContext<any>(null);
 
@@ -28,13 +30,14 @@ const PasswordInput: React.FC<{
   onChange: (val: string) => void;
   onEnter?: () => void;
   placeholder?: string;
-}> = ({ value, onChange, onEnter, placeholder = 'Passwort eingeben' }) => {
+}> = ({ value, onChange, onEnter, placeholder }) => {
+  const { t } = useLanguage();
   const [show, setShow] = useState(false);
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <input
         type={show ? 'text' : 'password'}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('login_password_placeholder', 'Passwort eingeben')}
         value={value}
         onChange={(e: any) => onChange(e.target.value)}
         onKeyDown={(e: any) => e.key === 'Enter' && onEnter && onEnter()}
@@ -60,6 +63,7 @@ const PasswordInput: React.FC<{
 };
 
 const App: React.FC = () => {
+  const { t } = useLanguage();
   const [branding, setBranding] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState('');
@@ -151,8 +155,8 @@ const App: React.FC = () => {
         sessionStorage.setItem('teamMannschaft', data.mannschaft);
         sessionStorage.setItem('teamId', data.team_id);
         sessionStorage.setItem('teamKundenId', kundenId);
-      } else { setTeamError('Falsches Passwort'); }
-    } catch { setTeamError('Verbindungsfehler'); }
+      } else { setTeamError(t('error_falsches_passwort', 'Falsches Passwort!')); }
+    } catch { setTeamError(t('error_verbindungsfehler', 'Verbindungsfehler')); }
     setTeamLoading(false);
   };
 
@@ -169,8 +173,8 @@ const App: React.FC = () => {
       const res = await fetch(`${API_EXEC_URL}?kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(password)}`);
       const data = await res.json();
       if (data.success) { setIsAuthenticated(true); setShowLogin(false); setPassword(''); }
-      else { setError(data.error || 'Falsches Passwort!'); }
-    } catch { setError('Login Fehler'); }
+      else { setError(data.error || t('error_falsches_passwort', 'Falsches Passwort!')); }
+    } catch { setError(t('error_login_fehlgeschlagen', 'Login Fehler')); }
   };
 
   const isReadOnly = String(branding?.ReadOnly || '').toUpperCase() === 'TRUE';
@@ -182,7 +186,7 @@ const App: React.FC = () => {
   if (loading || hasTeamLogin === null) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#111' }}>
-        <div style={{ color: 'white', fontSize: 18 }}>Laden...</div>
+        <div style={{ color: 'white', fontSize: 18 }}>{t('status_laden', 'Laden...')}</div>
       </div>
     );
   }
@@ -191,6 +195,9 @@ const App: React.FC = () => {
     return (
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 16, left: 16 }}>
+            <LanguageSwitcher variant="light" />
+          </div>
           {showGear && (
             <button onClick={() => setShowLogin(true)}
               style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 10, padding: 10, cursor: 'pointer', color: 'white' }}>
@@ -204,16 +211,16 @@ const App: React.FC = () => {
               <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>}
             <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Sport App'}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>Bitte mit deinem Team-Passwort einloggen</p>
+            <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('hinweis_team_login', 'Bitte mit deinem Team-Passwort einloggen')}</p>
             <PasswordInput value={teamPassword} onChange={setTeamPassword} onEnter={handleTeamLogin} />
             {teamError && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{teamError}</p>}
             <button onClick={handleTeamLogin} disabled={teamLoading}
               style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
-              {teamLoading ? 'Einloggen...' : 'Einloggen'}
+              {teamLoading ? t('btn_login_laeuft', 'Einloggen...') : t('btn_login', 'Einloggen')}
             </button>
             <button onClick={() => { setShowTeamLogin(false); setTeamLoginDone(true); }}
               style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Weiter ohne Login →
+              {t('btn_weiter_ohne_login', 'Weiter ohne Login →')}
             </button>
           </div>
         </div>
@@ -224,22 +231,25 @@ const App: React.FC = () => {
   if (showLogin && !isAuthenticated) {
     return (
       <IonApp>
-        <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 16, left: 16 }}>
+            <LanguageSwitcher variant="light" />
+          </div>
           <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             {logoUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
               <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>}
-            <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Admin Login'}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>Admin Login</p>
+            <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || t('lbl_admin_login', 'Admin Login')}</h2>
+            <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('lbl_admin_login', 'Admin Login')}</p>
             <PasswordInput value={password} onChange={setPassword} onEnter={handleLogin} />
             {error && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{error}</p>}
             <button onClick={handleLogin}
               style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Einloggen
+              {t('btn_login', 'Einloggen')}
             </button>
             <button onClick={() => { setShowLogin(false); setPassword(''); setError(''); }}
               style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
-              ← Zurück zur App
+              {t('btn_zurueck_zur_app', '← Zurück zur App')}
             </button>
           </div>
         </div>

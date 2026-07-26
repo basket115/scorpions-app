@@ -5,6 +5,8 @@ import {
   IonButtons, IonButton, IonIcon, IonSpinner,
 } from '@ionic/react';
 import { refreshOutline, settingsOutline } from 'ionicons/icons';
+import { useLanguage } from '../i18n/LanguageContext';
+import LanguageSwitcher from '../i18n/LanguageSwitcher';
 
 interface AppHeaderProps {
   title: string;
@@ -30,6 +32,7 @@ const s: Record<string, React.CSSProperties> = {
 const AppHeader: React.FC<AppHeaderProps> = ({
   title, logoUrl, sponsorLogoUrl, themaFarbe, onRefresh, loading, onAdminClick
 }) => {
+  const { t } = useLanguage();
   return (
     <IonHeader>
       <IonToolbar style={{ '--background': themaFarbe || '#C4161C' } as React.CSSProperties}>
@@ -38,14 +41,17 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
         <IonTitle style={s.title}>{title}</IonTitle>
         <IonButtons slot="end">
+          <div style={{ marginRight: 8 }}>
+            <LanguageSwitcher variant="light" />
+          </div>
           {sponsorLogoUrl && (
             <div style={s.endSlot}>
-              <span style={s.partnerLabel}>PARTNER</span>
+              <span style={s.partnerLabel}>{t('lbl_partner', 'PARTNER')}</span>
               <img src={sponsorLogoUrl} alt="Sponsor" style={s.sponsorLogo} />
             </div>
           )}
           {onAdminClick && (
-            <IonButton onClick={onAdminClick} style={s.adminBtn} title="Admin">
+            <IonButton onClick={onAdminClick} style={s.adminBtn} title={t('lbl_admin_tooltip', 'Admin')}>
               <IonIcon icon={settingsOutline} />
             </IonButton>
           )}
