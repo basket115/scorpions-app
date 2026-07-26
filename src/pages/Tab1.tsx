@@ -3,6 +3,7 @@ import React, { useContext, useState, useEffect, useMemo, useCallback } from 're
 import AppHeader from '../components/AppHeader';
 import { BrandingContext, fixGoogleDriveUrl } from '../App';
 import { useLanguage } from '../i18n/LanguageContext';
+import { translateKategorie } from '../i18n/translations';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -251,7 +252,7 @@ const KategorienDropdown: React.FC<{
 }> = ({ kategorien, selected, onSelect, themaFarbe }) => {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const label = selected || t('lbl_alle_abteilungen', 'Alle Abteilungen');
+  const label = selected ? translateKategorie(selected, t) : t('lbl_alle_abteilungen', 'Alle Abteilungen');
   return (
     <div style={{ position: 'relative', marginBottom: 12 }}>
       <button onClick={() => setOpen(o => !o)}
@@ -268,7 +269,7 @@ const KategorienDropdown: React.FC<{
           {kategorien.map(k => (
             <div key={k} onClick={() => { onSelect(k); setOpen(false); }}
               style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === k ? 700 : 400, color: selected === k ? themaFarbe : '#111', background: selected === k ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
-              {k}
+              {translateKategorie(k, t)}
             </div>
           ))}
         </div>
@@ -400,7 +401,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         {teamRolle && (
           <div style={{ background: themaFarbe, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>
-              {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : teamRolle === 'abtl' ? t('lbl_rolle_abteilungsleiter', '🏅 Abteilungsleiter') : `🏀 ${teamMannschaft}`}
+              {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : teamRolle === 'abtl' ? t('lbl_rolle_abteilungsleiter', '🏅 Abteilungsleiter') : `🏀 ${translateKategorie(teamMannschaft, t)}`}
             </span>
             <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
           </div>
@@ -435,10 +436,10 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             <BildUploadButton onUploaded={(url) => setBildUrl(url)} themaFarbe={themaFarbe} />
             <input placeholder={t('lbl_video_url_optional', '▶ YouTube URL (optional)')} value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
             {isTeam && teamMannschaft ? (
-              <div style={{ padding: '10px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', background: '#f0f0f0', color: '#555', fontSize: 14 }}>{t('lbl_kategorie', 'Kategorie: ')}<strong>{teamMannschaft}</strong></div>
+              <div style={{ padding: '10px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', background: '#f0f0f0', color: '#555', fontSize: 14 }}>{t('lbl_kategorie', 'Kategorie: ')}<strong>{translateKategorie(teamMannschaft, t)}</strong></div>
             ) : (
               <select value={kategorie || kategorienFinal[0]} onChange={(e: any) => setKategorie(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', color: '#111' }}>
-                {kategorienFinal.map(k => <option key={k} value={k}>{k}</option>)}
+                {kategorienFinal.map(k => <option key={k} value={k}>{translateKategorie(k, t)}</option>)}
               </select>
             )}
             {success && <p style={{ color: 'green' }}>{success}</p>}
@@ -449,7 +450,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
           </div>
         )}
         {gefilterteBeitraege.length === 0 ? (
-          <p style={{ color: '#999', textAlign: 'center', marginTop: 32 }}>{activeKategorie ? `Keine Beiträge in "${activeKategorie}".` : t('hinweis_keine_eintraege', 'Noch keine Beiträge.')}</p>
+          <p style={{ color: '#999', textAlign: 'center', marginTop: 32 }}>{activeKategorie ? `Keine Beiträge in "${translateKategorie(activeKategorie, t)}".` : t('hinweis_keine_eintraege', 'Noch keine Beiträge.')}</p>
         ) : (
           gefilterteBeitraege.map((beitrag, i) => {
             const embedUrl = getYouTubeEmbedUrl(beitrag.Video_URL || beitrag.videoUrl || beitrag.youtubeUrl || '');
@@ -471,7 +472,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                     <img src={optimizeImageUrl(beitrag.Bild_URL)} alt="" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
                   </div>
                 )}
-                <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{beitrag.Kategorie} • {beitrag.Datum}</div>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {beitrag.Datum}</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: 24, lineHeight: 1.25, color: '#222', paddingRight: darfLoeschen ? 90 : 0 }}>{beitrag.Titel}</h3>
                 <p style={{ margin: 0, color: '#555', fontSize: 16, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{beitrag.Text}</p>
                 {embedUrl && (

@@ -75,4 +75,46 @@ export const translations: Record<string, TranslationRow> = {
   hinweis_keine_eintraege: { de: 'Noch keine Beiträge.', hu: 'Még nincsenek bejegyzések.', en: 'No posts yet.' },
   lbl_nutzungsbedingungen: { de: '📋 Nutzungsbedingungen', hu: '📋 Felhasználási feltételek', en: '📋 Terms of use' },
   lbl_bildverwaltung: { de: '📸 Bildverwaltung', hu: '📸 Képkezelés', en: '📸 Image management' },
+
+  // ── Tab1.tsx: Kategorien (nur bekannte, im Kunden_Master gepflegte
+  //    Bezeichnungen; siehe translateKategorie() unten) ───────────
+  kategorie_news: { de: 'News', hu: 'Hírek', en: 'News' },
+  kategorie_vorstand: { de: 'Vorstand', hu: 'Vezetőség', en: 'Board' },
+  kategorie_jugend: { de: 'Jugend', hu: 'Utánpótlás', en: 'Youth' },
+  kategorie_ergebnisse: { de: 'Ergebnisse', hu: 'Eredmények', en: 'Results' },
+  kategorie_spielplan: { de: 'Spielplan', hu: 'Menetrend', en: 'Schedule' },
+  kategorie_damen: { de: 'Damen', hu: 'Női csapat', en: 'Women' },
+  kategorie_herren: { de: 'Herren', hu: 'Férfi csapat', en: 'Men' },
+  kategorie_infos: { de: 'Infos', hu: 'Információk', en: 'Information' },
+  kategorie_live: { de: 'Live', hu: 'Élő', en: 'Live' },
+  kategorie_verein: { de: 'Verein', hu: 'Egyesület', en: 'Club' },
 };
+
+// Ordnet den technischen Kategorienamen aus dem Kunden_Master (Spalte
+// "Kategorien", z.B. "News", "Vorstand", "Damen") auf den passenden
+// Übersetzungs-Key ab. Nur exakt hier gelistete Namen werden übersetzt;
+// alles andere (Mannschaftscodes wie U10/U12/U16/BBL/ProB/Academy,
+// Eigennamen etc.) bleibt bewusst unangetastet.
+const KATEGORIE_KEYS: Record<string, string> = {
+  News: 'kategorie_news',
+  Vorstand: 'kategorie_vorstand',
+  Jugend: 'kategorie_jugend',
+  Ergebnisse: 'kategorie_ergebnisse',
+  Spielplan: 'kategorie_spielplan',
+  Damen: 'kategorie_damen',
+  Herren: 'kategorie_herren',
+  Infos: 'kategorie_infos',
+  Live: 'kategorie_live',
+  Verein: 'kategorie_verein',
+};
+
+// Übersetzt nur den ANGEZEIGTEN Kategorienamen. Der technische Wert
+// (Filterwert, gespeicherter Kategoriename, API-Parameter) bleibt in
+// jedem Aufrufer unverändert - diese Funktion wird ausschließlich an
+// Anzeige-Stellen verwendet, nie zum Setzen von State oder Vergleichen.
+export function translateKategorie(kategorie: string, t: (key: string, fallback?: string) => string): string {
+  if (!kategorie) return kategorie;
+  const key = KATEGORIE_KEYS[kategorie];
+  if (!key) return kategorie;
+  return t(key, kategorie);
+}
