@@ -2,6 +2,7 @@
 import React, { useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import AppHeader from '../components/AppHeader';
 import { BrandingContext, fixGoogleDriveUrl } from '../App';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -34,6 +35,7 @@ async function uploadToCloudinary(file: File): Promise<string> {
 }
 
 const BildUploadButton: React.FC<{ onUploaded: (url: string) => void; themaFarbe: string }> = ({ onUploaded, themaFarbe }) => {
+  const { t } = useLanguage();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -42,7 +44,7 @@ const BildUploadButton: React.FC<{ onUploaded: (url: string) => void; themaFarbe
     if (!file) return;
     setUploading(true); setError('');
     try { const url = await uploadToCloudinary(file); onUploaded(url); }
-    catch { setError('Upload fehlgeschlagen.'); }
+    catch { setError(t('error_upload_fehlgeschlagen', 'Upload fehlgeschlagen.')); }
     finally { setUploading(false); }
   };
   return (
@@ -50,7 +52,7 @@ const BildUploadButton: React.FC<{ onUploaded: (url: string) => void; themaFarbe
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
       <button onClick={() => inputRef.current?.click()} disabled={uploading}
         style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `2px dashed #ccc`, background: uploading ? '#f5f5f5' : 'white', color: uploading ? '#aaa' : themaFarbe, fontWeight: 700, fontSize: 14, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-        {uploading ? '⏳ Bild wird hochgeladen...' : '📁 Bild vom Computer hochladen'}
+        {uploading ? t('status_wird_hochgeladen', '⏳ Bild wird hochgeladen...') : t('btn_bild_hochladen', '📁 Bild vom Computer hochladen')}
       </button>
       {error && <p style={{ color: 'red', fontSize: 13, margin: '4px 0 0' }}>{error}</p>}
     </div>
@@ -87,6 +89,7 @@ const DEFAULT_SPONSOR: SponsorData = {
 };
 
 const SponsorBanner: React.FC<{ kundenId: string }> = ({ kundenId }) => {
+  const { t } = useLanguage();
   const [sponsor, setSponsor] = useState<SponsorData | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => { if (!kundenId) return; getSponsor(kundenId).then(s => { setSponsor(s); setLoaded(true); }); }, [kundenId]);
@@ -97,13 +100,13 @@ const SponsorBanner: React.FC<{ kundenId: string }> = ({ kundenId }) => {
       {activeSponsor.logoUrl && <div style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 10, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, border: '1px solid #eee' }}><img src={activeSponsor.logoUrl} alt="Partner Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} referrerPolicy="no-referrer" /></div>}
       <div style={{ flex: 1, minWidth: 0 }}>
         {activeSponsor.bannerText && <div style={{ fontSize: 13, lineHeight: 1.45, color: '#444', whiteSpace: 'pre-wrap' as const, fontWeight: 500 }}>{activeSponsor.bannerText}</div>}
-        {activeSponsor.linkUrl && <div style={{ marginTop: 6, fontSize: 12, color: '#0057B7', fontWeight: 600 }}>Mehr erfahren →</div>}
+        {activeSponsor.linkUrl && <div style={{ marginTop: 6, fontSize: 12, color: '#0057B7', fontWeight: 600 }}>{t('btn_mehr_erfahren', 'Mehr erfahren →')}</div>}
       </div>
     </>
   );
   return (
     <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' as const, color: '#aaa', marginBottom: 8 }}>Partner</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' as const, color: '#aaa', marginBottom: 8 }}>{t('lbl_partner', 'Partner')}</div>
       {activeSponsor.linkUrl ? (
         <a href={activeSponsor.linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: '10px 14px', border: '1px solid #eee', textDecoration: 'none' }}>{bannerInhalt}</a>
       ) : (
@@ -127,19 +130,23 @@ const SocialBar: React.FC<{ b: any }> = ({ b }) => {
   );
 };
 
-const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onClose, themaFarbe }) => (
-  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
-    <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>📸 Bild-URL Anleitung</h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
+const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onClose, themaFarbe }) => {
+  const { t } = useLanguage();
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('lbl_bild_url_anleitung', '📸 Bild-URL Anleitung')}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
+        </div>
+        <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>{t('btn_verstanden', 'Verstanden ✓')}</button>
       </div>
-      <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Verstanden ✓</button>
     </div>
-  </div>
-);
+  );
+};
 
 const SponsorPopup: React.FC<{ kundenId: string; themaFarbe: string; onClose: () => void }> = ({ kundenId, themaFarbe, onClose }) => {
+  const { t } = useLanguage();
   const [logoUrl, setLogoUrl] = useState('');
   const [bannerText, setBannerText] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
@@ -153,31 +160,31 @@ const SponsorPopup: React.FC<{ kundenId: string; themaFarbe: string; onClose: ()
       const params = new URLSearchParams({ action: 'update_sponsor', kundenId, logoUrl, bannerText, linkUrl });
       const res = await fetch(`${API_EXEC_URL}?${params}`);
       const data = await res.json();
-      if (data.success) { delete sponsorCache[kundenId]; setSuccess('✅ Sponsor gespeichert!'); setTimeout(() => { setSuccess(''); onClose(); }, 1500); }
-      else { setError('Fehler: ' + (data.error || 'Unbekannt')); }
-    } catch { setError('Verbindungsfehler'); } finally { setSaving(false); }
+      if (data.success) { delete sponsorCache[kundenId]; setSuccess(t('status_sponsor_gespeichert', '✅ Sponsor gespeichert!')); setTimeout(() => { setSuccess(''); onClose(); }, 1500); }
+      else { setError(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt'))); }
+    } catch { setError(t('error_verbindungsfehler', 'Verbindungsfehler')); } finally { setSaving(false); }
   };
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 440, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🤝 Sponsor einrichten</h3>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('title_sponsor', '🤝 Sponsor einrichten')}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Logo URL</label>
+          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_logo_url', 'Logo URL')}</label>
             <input value={logoUrl} onChange={(e: any) => setLogoUrl(e.target.value)} placeholder="https://i.imgur.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Banner Text</label>
+          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_banner_text', 'Banner Text')}</label>
             <textarea value={bannerText} onChange={(e: any) => setBannerText(e.target.value)} rows={4} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111', resize: 'vertical' as const }} /></div>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Link URL</label>
+          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_link_url', 'Link URL')}</label>
             <input value={linkUrl} onChange={(e: any) => setLinkUrl(e.target.value)} placeholder="https://..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
         </div>
         {success && <p style={{ color: 'green', margin: '12px 0 0', fontSize: 14 }}>{success}</p>}
         {error && <p style={{ color: 'red', margin: '12px 0 0', fontSize: 14 }}>{error}</p>}
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>Abbrechen</button>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
           <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-            {saving ? 'Speichern...' : '💾 Sponsor speichern'}
+            {saving ? t('btn_speichern_laeuft', 'Speichern...') : t('btn_sponsor_speichern', '💾 Sponsor speichern')}
           </button>
         </div>
       </div>
@@ -186,6 +193,7 @@ const SponsorPopup: React.FC<{ kundenId: string; themaFarbe: string; onClose: ()
 };
 
 const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; onClose: () => void; onSaved: (updated: any) => void }> = ({ beitrag, themaFarbe, kundenId, onClose, onSaved }) => {
+  const { t } = useLanguage();
   const [titel, setTitel] = useState(beitrag.Titel || '');
   const [text, setText] = useState(beitrag.Text || '');
   const [bildUrl, setBildUrl] = useState(beitrag.Bild_URL || '');
@@ -200,33 +208,33 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
       const res = await fetch(`${API_EXEC_URL}?${params}`);
       const data = await res.json();
       if (data.success) { onSaved({ ...beitrag, Titel: titel, Text: text, Bild_URL: bildUrl, Video_URL: videoUrl }); onClose(); }
-      else { setError('Fehler: ' + (data.error || 'Unbekannt')); }
-    } catch { setError('Verbindungsfehler'); } finally { setSaving(false); }
+      else { setError(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt'))); }
+    } catch { setError(t('error_verbindungsfehler', 'Verbindungsfehler')); } finally { setSaving(false); }
   };
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>✏️ Beitrag bearbeiten</h3>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('btn_bearbeiten', '✏️ Beitrag bearbeiten')}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Titel</label>
+          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_titel', 'Titel')}</label>
             <input value={titel} onChange={(e: any) => setTitel(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Text</label>
+          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_text', 'Text')}</label>
             <textarea value={text} onChange={(e: any) => setText(e.target.value)} rows={5} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111', resize: 'vertical' as const }} /></div>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Bild URL</label>
-            <input value={bildUrl} onChange={(e: any) => setBildUrl(e.target.value)} placeholder="https://i.imgur.com/... oder Google Drive Link" style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} />
+          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_beitragsbild', 'Bild URL')}</label>
+            <input value={bildUrl} onChange={(e: any) => setBildUrl(e.target.value)} placeholder={t('hinweis_bild_url_beispiel', 'https://i.imgur.com/... oder Google Drive Link')} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} />
             <BildUploadButton onUploaded={(url) => setBildUrl(url)} themaFarbe={themaFarbe} />
-            {bildUrl && <img src={optimizeImageUrl(bildUrl)} alt="Vorschau" style={{ marginTop: 8, width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee' }} />}</div>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>▶ YouTube URL</label>
+            {bildUrl && <img src={optimizeImageUrl(bildUrl)} alt={t('lbl_vorschau', 'Vorschau')} style={{ marginTop: 8, width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee' }} />}</div>
+          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_video_url', '▶ YouTube URL')}</label>
             <input value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
         </div>
         {error && <p style={{ color: 'red', margin: '12px 0 0', fontSize: 14 }}>{error}</p>}
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>Abbrechen</button>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
           <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-            {saving ? 'Speichern...' : '💾 Speichern'}
+            {saving ? t('btn_speichern_laeuft', 'Speichern...') : t('btn_speichern', '💾 Speichern')}
           </button>
         </div>
       </div>
@@ -241,8 +249,9 @@ const KategorienDropdown: React.FC<{
   onSelect: (k: string) => void;
   themaFarbe: string;
 }> = ({ kategorien, selected, onSelect, themaFarbe }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const label = selected || 'Alle Abteilungen';
+  const label = selected || t('lbl_alle_abteilungen', 'Alle Abteilungen');
   return (
     <div style={{ position: 'relative', marginBottom: 12 }}>
       <button onClick={() => setOpen(o => !o)}
@@ -254,7 +263,7 @@ const KategorienDropdown: React.FC<{
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 100, overflow: 'hidden', marginTop: 4 }}>
           <div onClick={() => { onSelect(''); setOpen(false); }}
             style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === '' ? 700 : 400, color: selected === '' ? themaFarbe : '#111', background: selected === '' ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
-            Alle Abteilungen
+            {t('lbl_alle_abteilungen', 'Alle Abteilungen')}
           </div>
           {kategorien.map(k => (
             <div key={k} onClick={() => { onSelect(k); setOpen(false); }}
@@ -271,6 +280,7 @@ const KategorienDropdown: React.FC<{
 type Props = { onAdminClick?: () => void };
 
 const Tab1: React.FC<Props> = ({ onAdminClick }) => {
+  const { t } = useLanguage();
   const { branding, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
   const [beitraege, setBeitraege] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -350,20 +360,20 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     try {
       const params = new URLSearchParams({ action: 'add_beitrag', kundenId: branding?.Kunden_ID || '', vereinName: b?.Verein_Name || '', titel, text, bildUrl: fixedBildUrl, videoUrl: fixedVideoUrl, datum: new Date().toLocaleDateString('de-DE'), kategorie: postKategorie });
       const data = await fetch(`${API_EXEC_URL}?${params}`).then(r => r.json());
-      if (data.success) { setSuccess('✅ Beitrag gespeichert!'); setTitel(''); setText(''); setBildUrl(''); setVideoUrl(''); setShowForm(false); setTimeout(() => setSuccess(''), 3000); ladeBeitraege(); }
+      if (data.success) { setSuccess(t('status_beitrag_gespeichert', '✅ Beitrag gespeichert!')); setTitel(''); setText(''); setBildUrl(''); setVideoUrl(''); setShowForm(false); setTimeout(() => setSuccess(''), 3000); ladeBeitraege(); }
     } finally { setSaving(false); }
   };
 
   const handleDelete = async (beitrag: any) => {
     const beitragId = String(beitrag.id || beitrag.Id || '').trim();
-    if (!beitragId) { alert('Keine ID.'); return; }
+    if (!beitragId) { alert(t('error_keine_id', 'Keine ID.')); return; }
     if (!window.confirm(`"${beitrag.Titel}" wirklich löschen?`)) return;
     setDeletingId(beitragId);
     try {
       const res = await fetch(`${API_EXEC_URL}?action=delete_beitrag&kundenId=${encodeURIComponent(branding?.Kunden_ID || '')}&id=${encodeURIComponent(beitragId)}`, { method: 'GET', redirect: 'follow' }).then(r => r.json());
       if (res.success) { setBeitraege(prev => prev.filter(item => String(item.id || item.Id || '') !== beitragId)); }
-      else { alert('Fehler: ' + (res.error || 'Unbekannt')); }
-    } catch { alert('Verbindungsfehler.'); } finally { setDeletingId(null); }
+      else { alert(t('status_fehler', 'Fehler: ') + (res.error || t('error_unbekannt', 'Unbekannt'))); }
+    } catch { alert(t('error_verbindungsfehler', 'Verbindungsfehler.')); } finally { setDeletingId(null); }
   };
 
   const handleEditSaved = (updated: any) => {
@@ -390,9 +400,9 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         {teamRolle && (
           <div style={{ background: themaFarbe, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>
-              {teamRolle === 'admin' ? '👑 Hauptadmin' : teamRolle === 'abtl' ? '🏅 Abteilungsleiter' : `🏀 ${teamMannschaft}`}
+              {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : teamRolle === 'abtl' ? t('lbl_rolle_abteilungsleiter', '🏅 Abteilungsleiter') : `🏀 ${teamMannschaft}`}
             </span>
-            <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>Abmelden</button>
+            <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
           </div>
         )}
         {demoTage && <div style={{ backgroundColor: '#f0a500', borderRadius: 10, padding: '12px 16px', marginBottom: 12, textAlign: 'center', fontWeight: 'bold', color: 'white', fontSize: 15 }}>⏱ Demo läuft noch {demoTage} Tage</div>}
@@ -409,23 +419,23 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
         {canPost && !showForm && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: 'white', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>⊕ NEUEN BEITRAG ERSTELLEN</button>
-            {isAdmin && <button onClick={() => setShowSponsorForm(true)} style={{ width: '100%', padding: 12, borderRadius: 10, backgroundColor: 'white', border: `2px solid ${themaFarbe}`, color: themaFarbe, fontWeight: 'bold', fontSize: 15, cursor: 'pointer' }}>🤝 SPONSOR EINRICHTEN</button>}
+            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: 'white', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>{t('btn_neuer_beitrag', '⊕ NEUEN BEITRAG ERSTELLEN')}</button>
+            {isAdmin && <button onClick={() => setShowSponsorForm(true)} style={{ width: '100%', padding: 12, borderRadius: 10, backgroundColor: 'white', border: `2px solid ${themaFarbe}`, color: themaFarbe, fontWeight: 'bold', fontSize: 15, cursor: 'pointer' }}>{t('btn_sponsor', '🤝 SPONSOR EINRICHTEN')}</button>}
           </div>
         )}
         {canPost && showForm && (
           <div style={{ background: '#f9f9f9', borderRadius: 12, padding: 16, marginBottom: 20, border: '1px solid #ddd' }}>
-            <h3 style={{ marginTop: 0, color: themaFarbe }}>📝 Neuer Beitrag</h3>
-            <input placeholder="Titel" value={titel} onChange={(e: any) => setTitel(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
-            <textarea placeholder="Text" value={text} onChange={(e: any) => setText(e.target.value)} rows={4} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
+            <h3 style={{ marginTop: 0, color: themaFarbe }}>{t('title_neuer_beitrag', '📝 Neuer Beitrag')}</h3>
+            <input placeholder={t('lbl_titel', 'Titel')} value={titel} onChange={(e: any) => setTitel(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
+            <textarea placeholder={t('lbl_text', 'Text')} value={text} onChange={(e: any) => setText(e.target.value)} rows={4} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
             <div style={{ position: 'relative', marginBottom: 8 }}>
-              <input placeholder="Bild URL (optional)" value={bildUrl} onChange={(e: any) => setBildUrl(e.target.value)} style={{ width: '100%', padding: 10, paddingRight: 44, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
+              <input placeholder={t('lbl_bild_url_optional', 'Bild URL (optional)')} value={bildUrl} onChange={(e: any) => setBildUrl(e.target.value)} style={{ width: '100%', padding: 10, paddingRight: 44, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
               <button onClick={() => setShowBildInfo(true)} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', border: '2px solid #ccc', background: 'white', color: '#888', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>?</button>
             </div>
             <BildUploadButton onUploaded={(url) => setBildUrl(url)} themaFarbe={themaFarbe} />
-            <input placeholder="▶ YouTube URL (optional)" value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
+            <input placeholder={t('lbl_video_url_optional', '▶ YouTube URL (optional)')} value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
             {isTeam && teamMannschaft ? (
-              <div style={{ padding: '10px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', background: '#f0f0f0', color: '#555', fontSize: 14 }}>Kategorie: <strong>{teamMannschaft}</strong></div>
+              <div style={{ padding: '10px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', background: '#f0f0f0', color: '#555', fontSize: 14 }}>{t('lbl_kategorie', 'Kategorie: ')}<strong>{teamMannschaft}</strong></div>
             ) : (
               <select value={kategorie || kategorienFinal[0]} onChange={(e: any) => setKategorie(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', color: '#111' }}>
                 {kategorienFinal.map(k => <option key={k} value={k}>{k}</option>)}
@@ -433,13 +443,13 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             )}
             {success && <p style={{ color: 'green' }}>{success}</p>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ccc', backgroundColor: 'white', cursor: 'pointer', color: '#111' }}>Abbrechen</button>
-              <button onClick={handleSubmit} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: themaFarbe, color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>{saving ? 'Speichern...' : 'Veröffentlichen'}</button>
+              <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ccc', backgroundColor: 'white', cursor: 'pointer', color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
+              <button onClick={handleSubmit} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: themaFarbe, color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>{saving ? t('btn_publish_laeuft', 'Speichern...') : t('btn_publish', 'Veröffentlichen')}</button>
             </div>
           </div>
         )}
         {gefilterteBeitraege.length === 0 ? (
-          <p style={{ color: '#999', textAlign: 'center', marginTop: 32 }}>{activeKategorie ? `Keine Beiträge in "${activeKategorie}".` : 'Noch keine Beiträge.'}</p>
+          <p style={{ color: '#999', textAlign: 'center', marginTop: 32 }}>{activeKategorie ? `Keine Beiträge in "${activeKategorie}".` : t('hinweis_keine_eintraege', 'Noch keine Beiträge.')}</p>
         ) : (
           gefilterteBeitraege.map((beitrag, i) => {
             const embedUrl = getYouTubeEmbedUrl(beitrag.Video_URL || beitrag.videoUrl || beitrag.youtubeUrl || '');
@@ -482,8 +492,8 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
       {/* Footer */}
       <div style={{ background: themaFarbe, padding: '16px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
-        <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>📋 Nutzungsbedingungen</a>
-        <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>📸 Bildverwaltung</a>
+        <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_nutzungsbedingungen', '📋 Nutzungsbedingungen')}</a>
+        <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_bildverwaltung', '📸 Bildverwaltung')}</a>
         <a href="mailto:info@onlang.de" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>✉️ info@onlang.de</a>
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600 }}>© 2026 ONLANG</span>
       </div>
