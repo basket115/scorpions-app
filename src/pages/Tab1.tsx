@@ -406,8 +406,25 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
           </div>
         )}
-        {demoTage && <div style={{ backgroundColor: '#f0a500', borderRadius: 10, padding: '12px 16px', marginBottom: 12, textAlign: 'center', fontWeight: 'bold', color: 'white', fontSize: 15 }}>⏱ Demo läuft noch {demoTage} Tage</div>}
-
+        {demoTage && (
+  <div
+    style={{
+      backgroundColor: '#f0a500',
+      borderRadius: 10,
+      padding: '12px 16px',
+      marginBottom: 12,
+      textAlign: 'center',
+      fontWeight: 'bold',
+      color: 'white',
+      fontSize: 15,
+    }}
+  >
+    ⏱ {t(
+      'app_demo_running',
+      `Demo läuft noch ${demoTage} Tage`
+    ).replace('{tage}', String(demoTage))}
+  </div>
+)}
         {/* ─── Dropdown wie BBK ─── */}
         {sichtbareKategorien.length > 0 && !isTeam && (
           <KategorienDropdown
