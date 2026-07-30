@@ -63,8 +63,19 @@ const PasswordInput: React.FC<{
 };
 
 const App: React.FC = () => {
-  const { t } = useLanguage();
+  const { t: languageT, setLang } = useLanguage();
   const [branding, setBranding] = useState<any>(null);
+ const [uebersetzungen, setUebersetzungen] = useState<Record<string, string>>({});
+
+const t = (key: string, fallback?: string): string => {
+  const apiText = uebersetzungen[key];
+
+  if (apiText != null && apiText !== '') {
+    return apiText;
+  }
+
+  return languageT(key, fallback);
+};
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -94,6 +105,32 @@ const App: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setBranding(data.branding);
+       const brandingSprache = String(
+  data.branding?.Sprache || 'de'
+).toLowerCase();
+
+const sprache: 'de' | 'hu' | 'en' =
+  brandingSprache === 'hu' || brandingSprache === 'en'
+    ? brandingSprache
+    : 'de';
+
+setLang(sprache);
+
+try {
+  const translationsRes = await fetch(
+    `${API_EXEC_URL}?action=getTranslations&kundenId=${encodeURIComponent(kundenId)}&lang=${encodeURIComponent(sprache)}`
+  );
+
+  const translationsData = await translationsRes.json();
+
+  if (translationsData?.translations) {
+    setUebersetzungen(translationsData.translations);
+  } else {
+    setUebersetzungen({});
+  }
+} catch {
+  setUebersetzungen({});
+}
         const vereinName = data.branding?.Verein_Name || 'Sport App';
         const themaFarbe = data.branding?.Thema_Farbe || '#111111';
         const logoUrl = data.branding?.Logo_Verein || data.branding?.Logo_verein || '';
@@ -259,6 +296,8 @@ const App: React.FC = () => {
 
   return (
     <BrandingContext.Provider value={{
+     t,
+sprache: String(branding?.Sprache || 'de').toLowerCase(),
       branding,
       loading,
       reload,
