@@ -46,18 +46,22 @@ async function once(url: string, timeoutMs: number): Promise<any> {
   }
 }
 
-/** GET ueber den Proxy; haengt kundenId automatisch an (ausser withKunde=false). Genau 1 Retry. */
+/** GET ueber den Proxy; haengt kundenId automatisch an (ausser withKunde=false).
+ *  retry=true macht GENAU 1 Wiederholung – aber NUR bei echten transienten Fehlern
+ *  (Netzwerk/Timeout). Kein Retry bei Parse-/Content-Type-/HTTP-/NoCustomer-Fehlern
+ *  (bringt nichts und verdoppelt nur die Wartezeit). */
 export async function apiGet(
   action: string,
   extra: Record<string, string> = {},
   withKunde: boolean = true,
-  timeoutMs: number = 12000
+  timeoutMs: number = 12000,
+  retry: boolean = true
 ): Promise<any> {
-  const url = buildUrl(action, extra, withKunde);
   try {
-    return await once(url, timeoutMs);
+    return await once(buildUrl(action, extra, withKunde), timeoutMs);
   } catch (e1) {
-    if (e1 instanceof ApiError && e1.klasse === 'NoCustomer') throw e1; // kein Retry ohne Kunde
+    const transient = e1 instanceof ApiError && (e1.klasse === 'TimeoutError' || e1.klasse === 'NetworkError');
+    if (!retry || !transient) throw e1;
     await new Promise((r) => setTimeout(r, 700));
     return await once(buildUrl(action, extra, withKunde), timeoutMs);
   }
