@@ -347,9 +347,8 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     feedLoadingRef.current = true;
     setFeedState('loading');                     // während des Ladens: loading (nie empty)
     try {
-      // EIN kontrollierter Versuch, KEIN Auto-Retry -> kein 20s-Abbruch mit zweitem Versuch.
-      // Timeout bleibt 20s; echte Fehler deckt der "Erneut laden"-Button ab.
-      const data = await apiGet('get_beitraege', { kundenId: String(ladeId) }, false, 20000, false);
+      // Ein kontrollierter Feed-Aufruf über den kanonischen Proxy (Timeout 20s, Retry wie bisher).
+      const data = await apiGet('get_beitraege', { kundenId: String(ladeId) }, false, 20000);
       if (data && data.success) {
         const rows = data.rows || data.beitraege || [];
         setBeitraege(rows);
