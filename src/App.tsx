@@ -4,6 +4,7 @@ import { IonApp } from '@ionic/react';
 import Tab1 from './pages/Tab1';
 import { useLanguage } from './i18n/LanguageContext';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
+import { resolveCustomerId, noCustomerText } from './utils/customer';
 
 export const BrandingContext = createContext<any>(null);
 
@@ -92,13 +93,11 @@ const t = (key: string, fallback?: string): string => {
   const [teamLoading, setTeamLoading] = useState(false);
   const [hasTeamLogin, setHasTeamLogin] = useState<boolean | null>(null);
 
-  const kundenId = (() => {
-    const fromUrl = new URLSearchParams(window.location.search).get('kunde');
-    if (fromUrl) { localStorage.setItem('kundenId', fromUrl); return fromUrl; }
-    return localStorage.getItem('kundenId') || '';
-  })();
+  const resolvedKunde = resolveCustomerId();
+  const kundenId = resolvedKunde || '';
 
   const loadBranding = async () => {
+    if (!resolvedKunde) { setLoading(false); return; }
     setLoading(true);
     try {
       const res = await fetch(`${API_EXEC_URL}?action=get_branding&kundenId=${kundenId}`);
@@ -219,6 +218,15 @@ try {
 
   const themaFarbe = branding?.Thema_Farbe || '#111111';
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
+
+  if (!resolvedKunde) {
+    const l = (new URLSearchParams(window.location.search).get('lang') || 'de').toLowerCase();
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#111', padding: 24, textAlign: 'center' }}>
+        <div style={{ color: 'white', fontSize: 18, maxWidth: 320 }}>{noCustomerText(l)}</div>
+      </div>
+    );
+  }
 
   if (loading || hasTeamLogin === null) {
     return (

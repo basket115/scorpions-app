@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useContext } from 'react';
 import type { FeedRow } from '../../utils/feed';
 import { BrandingContext } from '../../App';
+import { apiGet } from '../../utils/api';
 
 type Props = { item: FeedRow };
 
 const RED = '#C4161C';
 const WHITE = '#FFFFFF';
 
-const API = 'https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec';
-const KUNDEN_ID = 'V002';
+// Kunden-ID + Backend zentral: keine eigene GAS-URL, kein V002 mehr.
 
 type SponsorData = { logoUrl?: string; bannerText?: string; bannerBildUrl?: string; linkUrl?: string };
 
@@ -18,7 +18,7 @@ let sponsorCache: SponsorData | null | undefined = undefined;
 async function loadSponsor(): Promise<SponsorData | null> {
   if (sponsorCache !== undefined) return sponsorCache;
   try {
-    const d = await fetch(`${API}?action=get_sponsors&kundenId=${KUNDEN_ID}`, { redirect: 'follow' }).then(r => r.json());
+    const d = await apiGet('get_sponsors');
     const rows = d?.sponsors || [];
     const found = rows.findLast((r: any) => String(r?.Aktiv).toUpperCase() === 'TRUE');
     sponsorCache = found ? {

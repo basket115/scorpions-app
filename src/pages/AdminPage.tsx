@@ -1,9 +1,9 @@
 // src/pages/AdminPage.tsx
 import React, { useCallback, useEffect, useState } from 'react';
 import { IonSpinner } from '@ionic/react';
+import { apiGet } from '../utils/api';
 
-const API = 'https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec';
-const KUNDEN_ID = 'V002';
+// Kunden-ID + Backend zentral (Proxy). Kein V002 und keine eigene GAS-URL mehr.
 
 type Beitrag = { id: string; Titel: string; Text: string; Bild_URL?: string; Datum?: string; Kategorie?: string; };
 type Branding = { themaFarbe: string; logoUrl: string; sponsorLogoUrl: string; passwort: string; vereinName: string; };
@@ -32,14 +32,14 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetch(`${API}?action=get_beitraege&kundenId=${KUNDEN_ID}`, { redirect: 'follow' }).then(r => r.json());
+      const data = await apiGet('get_beitraege');
       setBeitraege(data.rows || []);
     } catch { setBeitraege([]); } finally { setLoading(false); }
   }, []);
 
   const loadSponsor = useCallback(async () => {
     try {
-      const d = await fetch(`${API}?action=get_sponsors&kundenId=${KUNDEN_ID}`, { redirect: 'follow' }).then(r => r.json());
+      const d = await apiGet('get_sponsors');
       const rows = d?.sponsors || [];
       const found = rows.findLast((r: any) => String(r?.Aktiv).toUpperCase() === 'TRUE');
       if (found) {
@@ -55,8 +55,7 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
     if (!titel.trim() || !text.trim()) { alert('Titel und Text sind Pflicht!'); return; }
     setSaving(true);
     try {
-      const params = new URLSearchParams({ action: 'add_beitrag', kundenId: KUNDEN_ID, vereinName: branding.vereinName, titel: titel.trim(), text: text.trim(), bildUrl: bildUrl.trim(), videoUrl: videoUrl.trim(), datum: new Date().toLocaleDateString('de-DE'), kategorie });
-      const data = await fetch(`${API}?${params}`, { redirect: 'follow' }).then(r => r.json());
+      const data = await apiGet('add_beitrag', { vereinName: String(branding.vereinName || ''), titel: titel.trim(), text: text.trim(), bildUrl: bildUrl.trim(), videoUrl: videoUrl.trim(), datum: new Date().toLocaleDateString('de-DE'), kategorie });
       if (data.success) { setSuccess('✅ Gespeichert!'); setTitel(''); setText(''); setBildUrl(''); setVideoUrl(''); setShowForm(false); setTimeout(() => setSuccess(''), 3000); load(); }
     } finally { setSaving(false); }
   };
@@ -64,8 +63,7 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
   const handleSaveSponsor = async () => {
     setSavingSponsor(true);
     try {
-      const params = new URLSearchParams({ action: 'update_sponsor', kundenId: KUNDEN_ID, logoUrl: sponsor.logoUrl, bannerText: sponsor.bannerText, linkUrl: sponsor.linkUrl });
-      const data = await fetch(`${API}?${params}`, { redirect: 'follow' }).then(r => r.json());
+      const data = await apiGet('update_sponsor', { logoUrl: String(sponsor.logoUrl || ''), bannerText: String(sponsor.bannerText || ''), linkUrl: String(sponsor.linkUrl || '') });
       if (data.success) { setSuccess('✅ Sponsor gespeichert!'); setShowSponsorForm(false); setTimeout(() => setSuccess(''), 3000); }
       else { alert('Fehler: ' + (data.error || 'Unbekannt')); }
     } finally { setSavingSponsor(false); }
@@ -75,7 +73,7 @@ const AdminPage: React.FC<Props> = ({ onBack, branding }) => {
     if (!window.confirm(`"${b.Titel}" löschen?`)) return;
     setDeletingId(b.id);
     try {
-      const res = await fetch(`${API}?action=delete_beitrag&kundenId=${KUNDEN_ID}&id=${encodeURIComponent(b.id)}`, { redirect: 'follow' }).then(r => r.json());
+      const res = await apiGet('delete_beitrag', { id: String(b.id) });
       if (res.success) setBeitraege(prev => prev.filter(x => x.id !== b.id));
     } finally { setDeletingId(null); }
   };

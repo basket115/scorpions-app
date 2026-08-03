@@ -1,6 +1,6 @@
 // src/utils/feed.ts
-const API_BASE =
-  "https://script.google.com/macros/s/AKfycbwm0nO0XRsJD2gqWTbfZvRHdKTN0ylbJrWkJt66TcCCiBkX8l7aaV2lF5saHEBwwqeUoA/exec";
+import { apiGet } from './api';
+import { resolveCustomerId } from './customer';
 
 export type FeedKind = "news" | "result" | "training" | "unknown";
 
@@ -155,23 +155,11 @@ function normalizeRow(row: any): FeedRow {
   };
 }
 
-function getKundenId(): string {
-  const params = new URLSearchParams(window.location.search);
-  const kunde = params.get('kunde');
-  if (kunde) return kunde;
-  return 'V002';
-}
-
 export async function fetchFeed(): Promise<FeedRow[]> {
-  const kundenId = getKundenId();
-  const url = new URL(API_BASE);
-  url.searchParams.set('action', 'get_beitraege');
-  url.searchParams.set('kundenId', kundenId);
+  // Kunden-ID zentral, kein V002-Fallback mehr. Zugriff nur ueber den Proxy.
+  if (!resolveCustomerId()) throw new Error('Keine gueltige Kunden-ID');
 
-  const res = await fetch(url.toString(), { method: 'GET', redirect: 'follow' });
-  if (!res.ok) throw new Error(`HTTP Fehler ${res.status}`);
-
-  const json = await res.json();
+  const json = await apiGet('get_beitraege');
   if (!json.success) throw new Error(json.error || 'API Fehler');
 
   const data = Array.isArray(json.rows) ? json.rows
