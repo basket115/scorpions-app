@@ -1,9 +1,10 @@
 // src/pages/Tab1.tsx v16 — Scorpions: Dropdown wie BBK
-import React, { useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AppHeader from '../components/AppHeader';
 import { BrandingContext, fixGoogleDriveUrl } from '../App';
 import { useLanguage } from '../i18n/LanguageContext';
 import { translateKategorie } from '../i18n/translations';
+import { apiGet } from '../utils/api';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -284,6 +285,8 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const { t } = useLanguage();
   const { branding, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
   const [beitraege, setBeitraege] = useState<any[]>([]);
+  const [feedState, setFeedState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
+  const feedLoadingRef = useRef(false);
   const [showForm, setShowForm] = useState(false);
   const [showSponsorForm, setShowSponsorForm] = useState(false);
   const [titel, setTitel] = useState('');
@@ -332,11 +335,26 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
   const ladeBeitraege = useCallback(async () => {
     if (!ladeId) return;
+    if (feedLoadingRef.current) return;          // nur EIN kontrollierter Ladevorgang pro Kunde
+    feedLoadingRef.current = true;
+    setFeedState('loading');                     // während des Ladens: loading (nie empty)
     try {
-      const res = await fetch(`${API_EXEC_URL}?action=get_beitraege&kundenId=${ladeId}`);
-      const data = await res.json();
-      if (data.success) setBeitraege(data.rows || data.beitraege || []);
-    } catch (err) { console.error(err); }
+      // kanonischer Proxy, cache-buster + no-store + Timeout(20s) + 1 Retry.
+      // withKunde=false: die feed-eigene ladeId (Parent_ID/Kunden_ID) wird explizit gesetzt.
+      const data = await apiGet('get_beitraege', { kundenId: String(ladeId) }, false, 20000);
+      if (data && data.success) {
+        const rows = data.rows || data.beitraege || [];
+        setBeitraege(rows);
+        setFeedState(rows.length ? 'ready' : 'empty');   // empty NUR bei erfolgreicher leerer Liste
+      } else {
+        setFeedState('error');                            // kein success -> Fehler, nicht empty
+      }
+    } catch (err) {
+      console.error('[Feed]', err);                       // Timeout/Netz/HTML statt JSON -> Fehler
+      setFeedState('error');
+    } finally {
+      feedLoadingRef.current = false;
+    }
   }, [ladeId]);
 
   useEffect(() => { ladeBeitraege(); }, [ladeBeitraege]);
@@ -466,7 +484,14 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             </div>
           </div>
         )}
-        {gefilterteBeitraege.length === 0 ? (
+        {feedState === 'loading' ? (
+          <p style={{ color: '#999', textAlign: 'center', marginTop: 32 }}>{t('status_laden', 'Wird geladen…')}</p>
+        ) : feedState === 'error' ? (
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <p style={{ color: '#c0392b' }}>{t('fehler_laden', 'Die Daten können momentan nicht geladen werden.')}</p>
+            <button onClick={() => ladeBeitraege()} style={{ marginTop: 8, padding: '8px 16px', borderRadius: 8, border: '1px solid #ccc', background: 'white', cursor: 'pointer', color: '#111' }}>{t('btn_erneut', 'Erneut laden')}</button>
+          </div>
+        ) : gefilterteBeitraege.length === 0 ? (
           <p style={{ color: '#999', textAlign: 'center', marginTop: 32 }}>{activeKategorie ? `Keine Beiträge in "${translateKategorie(activeKategorie, t)}".` : t('hinweis_keine_eintraege', 'Noch keine Beiträge.')}</p>
         ) : (
           gefilterteBeitraege.map((beitrag, i) => {

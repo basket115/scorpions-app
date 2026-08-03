@@ -24,9 +24,9 @@ function buildUrl(action: string, extra: Record<string, string>, withKunde: bool
   return `${PROXY_BASE}?${params.toString()}&_cb=${Date.now()}`;
 }
 
-async function once(url: string): Promise<any> {
+async function once(url: string, timeoutMs: number): Promise<any> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12000); // ~12s Timeout
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs); // Timeout via AbortController
   try {
     const resp = await fetch(url, { cache: 'no-store', redirect: 'follow', signal: ctrl.signal });
     if (!resp.ok) throw new ApiError('HttpError', 'HTTP ' + resp.status);
@@ -50,14 +50,15 @@ async function once(url: string): Promise<any> {
 export async function apiGet(
   action: string,
   extra: Record<string, string> = {},
-  withKunde: boolean = true
+  withKunde: boolean = true,
+  timeoutMs: number = 12000
 ): Promise<any> {
   const url = buildUrl(action, extra, withKunde);
   try {
-    return await once(url);
+    return await once(url, timeoutMs);
   } catch (e1) {
     if (e1 instanceof ApiError && e1.klasse === 'NoCustomer') throw e1; // kein Retry ohne Kunde
     await new Promise((r) => setTimeout(r, 700));
-    return await once(buildUrl(action, extra, withKunde));
+    return await once(buildUrl(action, extra, withKunde), timeoutMs);
   }
 }
