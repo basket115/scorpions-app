@@ -228,13 +228,9 @@ try {
     );
   }
 
-  if (loading || hasTeamLogin === null) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#111' }}>
-        <div style={{ color: 'white', fontSize: 18 }}>{t('status_laden', 'Laden...')}</div>
-      </div>
-    );
-  }
+  // Render-Sperre entfernt: Der erste Bildschirm (Menü/Header) erscheint SOFORT.
+  // Branding (ggf. aus Cache sofort), Übersetzungen, TeamLogin und Feed laden im
+  // Hintergrund und füllen die UI nach – nichts davon blockiert den Start mehr.
 
   if (false && hasTeamLogin && showTeamLogin && !teamLoginDone) {
     return (

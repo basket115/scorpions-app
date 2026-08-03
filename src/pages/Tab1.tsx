@@ -5,6 +5,7 @@ import { BrandingContext, fixGoogleDriveUrl } from '../App';
 import { useLanguage } from '../i18n/LanguageContext';
 import { translateKategorie } from '../i18n/translations';
 import { apiGet } from '../utils/api';
+import { resolveCustomerId } from '../utils/customer';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -63,11 +64,12 @@ const BildUploadButton: React.FC<{ onUploaded: (url: string) => void; themaFarbe
 
 type SponsorData = { logoUrl?: string; bannerText?: string; bannerBildUrl?: string; linkUrl?: string };
 const sponsorCache: Record<string, SponsorData | null> = {};
+const sponsorInflight: Record<string, Promise<SponsorData | null>> = {};
 
 async function loadSponsorsForKunde(kundenId: string): Promise<any[]> {
   try {
-    const res = await fetch(`${API_EXEC_URL}?action=get_sponsors&kundenId=${encodeURIComponent(kundenId)}`, { redirect: 'follow' });
-    const d = await res.json();
+    // kanonischer Proxy + Timeout (12s), kein Retry -> keine haengenden Pending-Requests
+    const d = await apiGet('get_sponsors', { kundenId }, false, 12000, false);
     return d?.sponsors || [];
   } catch { return []; }
 }
@@ -78,10 +80,16 @@ function isAktiv(val: any): boolean {
 
 async function getSponsor(kundenId: string): Promise<SponsorData | null> {
   if (kundenId in sponsorCache) return sponsorCache[kundenId];
-  const rows = await loadSponsorsForKunde(kundenId);
-  const found = rows.find((r: any) => String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv));
-  sponsorCache[kundenId] = found ? { logoUrl: found.Logo_URL || undefined, bannerText: found.Banner_Text || undefined, bannerBildUrl: found.Banner_Bild_URL || undefined, linkUrl: found.Banner_Link_URL || undefined } : null;
-  return sponsorCache[kundenId];
+  if (kundenId in sponsorInflight) return sponsorInflight[kundenId]; // In-Flight-Dedup: genau EIN Request pro Kunde
+  const p = (async () => {
+    const rows = await loadSponsorsForKunde(kundenId);
+    const found = rows.find((r: any) => String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv));
+    sponsorCache[kundenId] = found ? { logoUrl: found.Logo_URL || undefined, bannerText: found.Banner_Text || undefined, bannerBildUrl: found.Banner_Bild_URL || undefined, linkUrl: found.Banner_Link_URL || undefined } : null;
+    delete sponsorInflight[kundenId];
+    return sponsorCache[kundenId];
+  })();
+  sponsorInflight[kundenId] = p;
+  return p;
 }
 
 const DEFAULT_SPONSOR: SponsorData = {
@@ -331,7 +339,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     return kategorienFinal;
   }, [kategorienFinal, isTeam, teamMannschaft]);
 
-  const ladeId = (b?.Parent_ID && String(b.Parent_ID).trim()) ? String(b.Parent_ID).trim() : branding?.Kunden_ID;
+  const ladeId = (b?.Parent_ID && String(b.Parent_ID).trim()) ? String(b.Parent_ID).trim() : (branding?.Kunden_ID || resolveCustomerId() || '');
 
   const ladeBeitraege = useCallback(async () => {
     if (!ladeId) return;
@@ -526,12 +534,14 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: 'white', borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
                 )}
                 <SocialBar b={b} />
-                {kundenId && <SponsorBanner kundenId={kundenId} />}
               </div>
             );
           })
         )}
       </div>
+
+      {/* Sponsor-Banner: genau EINE Instanz auf der gesamten Feed-Seite */}
+      {kundenId && <SponsorBanner kundenId={kundenId} />}
 
       {/* Footer */}
       <div style={{ background: themaFarbe, padding: '16px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
