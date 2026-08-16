@@ -517,10 +517,10 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   </div>
                 )}
                 {beitrag.Bild_URL && (
-                  <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, marginBottom: 8, borderRadius: 8, overflow: 'hidden' }}>
-                    <img src={optimizeImageUrl(beitrag.Bild_URL)} alt="" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
-                  </div>
-                )}
+  <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, marginBottom: 8, borderRadius: 8, overflow: 'hidden', background: '#f2f2f2' }}>
+    <img src={optimizeImageUrl(beitrag.Bild_URL)} alt="" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', display: 'block' }} />
+  </div>
+)}
                 <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {beitrag.Datum}</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: 24, lineHeight: 1.25, color: '#222', paddingRight: darfLoeschen ? 90 : 0 }}>{beitrag.Titel}</h3>
                 <p style={{ margin: 0, color: '#555', fontSize: 16, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{beitrag.Text}</p>
