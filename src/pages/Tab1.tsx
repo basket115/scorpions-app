@@ -19,7 +19,7 @@ function getYouTubeEmbedUrl(url: string): string | null {
 function optimizeImageUrl(url: string): string {
   if (!url) return url;
   if (url.includes('cloudinary.com')) {
-    return url.replace('/upload/', '/upload/c_fill,w_1200,h_675,g_auto,q_auto,f_auto/');
+    return url.replace('/upload/', '/upload/c_fit,w_1200,q_auto,f_auto/');
   }
   return fixGoogleDriveUrl(url);
 }
