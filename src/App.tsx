@@ -164,7 +164,7 @@ try {
       setTeamId(sessionStorage.getItem('teamId') || '');
       setTeamLoginDone(true);
       setHasTeamLogin(true);
-    } else { checkHasTeamLogin(); }
+    } else { setHasTeamLogin(false); }
   }, [kundenId]); // eslint-disable-line
 
   const checkHasTeamLogin = async () => {
