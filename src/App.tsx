@@ -115,21 +115,7 @@ const sprache: 'de' | 'hu' | 'en' =
 
 setLang(sprache);
 
-try {
-  const translationsRes = await fetch(
-    `${API_EXEC_URL}?action=getTranslations&kundenId=${encodeURIComponent(kundenId)}&lang=${encodeURIComponent(sprache)}`
-  );
-
-  const translationsData = await translationsRes.json();
-
-  if (translationsData?.translations) {
-    setUebersetzungen(translationsData.translations);
-  } else {
-    setUebersetzungen({});
-  }
-} catch {
-  setUebersetzungen({});
-}
+setUebersetzungen({});
         const vereinName = data.branding?.Verein_Name || 'Sport App';
         const themaFarbe = data.branding?.Thema_Farbe || '#111111';
         const logoUrl = data.branding?.Logo_Verein || data.branding?.Logo_verein || '';
