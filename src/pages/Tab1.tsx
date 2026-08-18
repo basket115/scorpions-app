@@ -548,14 +548,12 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: 'white', borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
                 )}
                 <SocialBar b={b} />
+                {kundenId && <SponsorBanner kundenId={kundenId} />}
               </div>
             );
           })
         )}
       </div>
-
-      {/* Sponsor-Banner: genau EINE Instanz auf der gesamten Feed-Seite */}
-      {kundenId && <SponsorBanner kundenId={kundenId} />}
 
       {/* Footer */}
       <div style={{ background: themaFarbe, padding: '16px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
