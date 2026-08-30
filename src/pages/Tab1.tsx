@@ -318,9 +318,30 @@ const KategorienDropdown: React.FC<{
 };
 
 type Props = { onAdminClick?: () => void };
+function formatBeitragDatum(
+  datum: string,
+  lang: 'de' | 'hu' | 'en'
+): string {
+  if (!datum) return '';
 
+  const match = String(datum).match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+
+  if (!match) return datum;
+
+  const [, tag, monat, jahr] = match;
+
+  if (lang === 'hu') {
+    return `${jahr}.${monat.padStart(2, '0')}.${tag.padStart(2, '0')}.`;
+  }
+
+  if (lang === 'en') {
+    return `${monat.padStart(2, '0')}/${tag.padStart(2, '0')}/${jahr}`;
+  }
+
+  return `${tag.padStart(2, '0')}.${monat.padStart(2, '0')}.${jahr}`;
+}
 const Tab1: React.FC<Props> = ({ onAdminClick }) => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { branding, bootstrapData, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
   const [beitraege, setBeitraege] = useState<any[]>([]);
   const [feedState, setFeedState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
@@ -631,7 +652,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   />
 </div>
 )}
-                <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {beitrag.Datum}</div>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {formatBeitragDatum(beitrag.Datum, lang)}</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: 24, lineHeight: 1.25, color: '#222', paddingRight: darfLoeschen ? 90 : 0 }}>{beitrag.Titel}</h3>
                 <p style={{ margin: 0, color: '#555', fontSize: 16, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{beitrag.Text}</p>
                 {embedUrl && (
