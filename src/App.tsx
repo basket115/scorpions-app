@@ -66,6 +66,7 @@ const PasswordInput: React.FC<{
 const App: React.FC = () => {
   const { t: languageT, setLang } = useLanguage();
   const [branding, setBranding] = useState<any>(null);
+  const [bootstrapData, setBootstrapData] = useState<any>(null);
  const [uebersetzungen, setUebersetzungen] = useState<Record<string, string>>({});
 
 const t = (key: string, fallback?: string): string => {
@@ -96,49 +97,81 @@ const t = (key: string, fallback?: string): string => {
   const resolvedKunde = resolveCustomerId();
   const kundenId = resolvedKunde || '';
 
-  const loadBranding = async () => {
-    if (!resolvedKunde) { setLoading(false); return; }
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_EXEC_URL}?action=get_branding&kundenId=${kundenId}`);
-      const data = await res.json();
-      if (data.success) {
-        setBranding(data.branding);
-       const brandingSprache = String(
-  data.branding?.Sprache || 'de'
-).toLowerCase();
+  const applyBranding = (brandingData: any) => {
+    setBranding(brandingData);
+    const brandingSprache = String(
+      brandingData?.Sprache || 'de'
+    ).toLowerCase();
 
-const sprache: 'de' | 'hu' | 'en' =
-  brandingSprache === 'hu' || brandingSprache === 'en'
-    ? brandingSprache
-    : 'de';
+    const sprache: 'de' | 'hu' | 'en' =
+      brandingSprache === 'hu' || brandingSprache === 'en'
+        ? brandingSprache
+        : 'de';
 
-setLang(sprache);
+    setLang(sprache);
+    setUebersetzungen({});
 
-setUebersetzungen({});
-        const vereinName = data.branding?.Verein_Name || 'Sport App';
-        const themaFarbe = data.branding?.Thema_Farbe || '#111111';
-        const logoUrl = data.branding?.Logo_Verein || data.branding?.Logo_verein || '';
-        document.title = vereinName;
-        const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-        if (appleMeta) appleMeta.setAttribute('content', vereinName);
-        let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
-        if (themeColorMeta) { themeColorMeta.setAttribute('content', themaFarbe); }
-        else { themeColorMeta = document.createElement('meta'); themeColorMeta.name = 'theme-color'; themeColorMeta.content = themaFarbe; document.head.appendChild(themeColorMeta); }
-        if (logoUrl) {
-          const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-          const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-          if (favicon) favicon.href = logoUrl;
-          if (appleFavicon) appleFavicon.href = logoUrl;
-        }
-        const osAppId = data.branding?.OneSignal_App_ID || '';
-        if (osAppId) initOneSignal(osAppId);
-      }
-    } catch (err) { console.error(err); }
-    setLoading(false);
+    const vereinName = brandingData?.Verein_Name || 'Sport App';
+    const themaFarbe = brandingData?.Thema_Farbe || '#111111';
+    const logoUrl = brandingData?.Logo_Verein || brandingData?.Logo_verein || '';
+    document.title = vereinName;
+
+    const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (appleMeta) appleMeta.setAttribute('content', vereinName);
+
+    let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', themaFarbe);
+    } else {
+      themeColorMeta = document.createElement('meta');
+      themeColorMeta.name = 'theme-color';
+      themeColorMeta.content = themaFarbe;
+      document.head.appendChild(themeColorMeta);
+    }
+
+    if (logoUrl) {
+      const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+      const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+      if (favicon) favicon.href = logoUrl;
+      if (appleFavicon) appleFavicon.href = logoUrl;
+    }
+
+    const osAppId = brandingData?.OneSignal_App_ID || '';
+    if (osAppId) initOneSignal(osAppId);
   };
 
-  useEffect(() => { loadBranding(); }, []); // eslint-disable-line
+  const loadBootstrap = async () => {
+    if (!resolvedKunde) { setLoading(false); return; }
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_EXEC_URL}?action=get_bootstrap&kundenId=${encodeURIComponent(kundenId)}`);
+      const data = await res.json();
+
+      if (data?.success && data?.branding) {
+        setBootstrapData(data);
+        applyBranding(data.branding);
+        return;
+      }
+
+      throw new Error(data?.error || 'Bootstrap konnte nicht geladen werden');
+    } catch (bootstrapErr) {
+      console.warn('[Bootstrap] Fallback auf get_branding', bootstrapErr);
+      setBootstrapData(null);
+
+      try {
+        const res = await fetch(`${API_EXEC_URL}?action=get_branding&kundenId=${encodeURIComponent(kundenId)}`);
+        const data = await res.json();
+        if (data?.success && data?.branding) applyBranding(data.branding);
+      } catch (brandingErr) {
+        console.error(brandingErr);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadBootstrap(); }, []); // eslint-disable-line
 
   useEffect(() => {
     if (!kundenId) { setHasTeamLogin(false); return; }
@@ -162,7 +195,7 @@ setUebersetzungen({});
     } catch { setHasTeamLogin(false); }
   };
 
-  const reload = () => loadBranding();
+  const reload = () => loadBootstrap();
 
   const handleTeamLogin = async () => {
     if (!teamPassword.trim()) return;
@@ -289,6 +322,7 @@ setUebersetzungen({});
      t,
 sprache: String(branding?.Sprache || 'de').toLowerCase(),
       branding,
+      bootstrapData,
       loading,
       reload,
       isAuthenticated,
