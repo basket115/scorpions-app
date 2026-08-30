@@ -1,6 +1,6 @@
 import type { Context } from "https://edge.netlify.com";
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7gnTorNAQz21x3vwZOFQl2bkP2t1QKLppcUSQ_-CQywRS-36AZOeqDDMJg3uXVa2ntA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
 
 export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
