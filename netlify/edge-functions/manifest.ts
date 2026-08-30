@@ -38,10 +38,11 @@ export default async (request: Request, context: Context) => {
     }
   }
 
-  const startUrl = kundenId ? `/?kunde=${encodeURIComponent(kundenId)}` : "/";
+const startUrl = kundenId ? `/?kunde=${encodeURIComponent(kundenId)}` : "/";
+const appId = kundenId ? `/app/${encodeURIComponent(kundenId)}` : "/app/onlang";
 
-  const manifest = {
-    id: startUrl,
+const manifest = {
+  id: appId,
     short_name: vereinName,
     name: `${vereinName} Vereins-App`,
     start_url: startUrl,
