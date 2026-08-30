@@ -269,18 +269,99 @@ const handleTeamLogin = async () => {
   const themaFarbe = branding?.Thema_Farbe || '#111111';
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
 
-  if (!resolvedKunde) {
-    const l = (new URLSearchParams(window.location.search).get('lang') || 'de').toLowerCase();
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#111', padding: 24, textAlign: 'center' }}>
-        <div style={{ color: 'white', fontSize: 18, maxWidth: 320 }}>{noCustomerText(l)}</div>
-      </div>
-    );
-  }
+if (!resolvedKunde) {
+  const l = (
+    new URLSearchParams(window.location.search).get('lang') || 'de'
+  ).toLowerCase();
 
-  // Render-Sperre entfernt: Der erste Bildschirm (Menü/Header) erscheint SOFORT.
-  // Branding, Übersetzungen, TeamLogin und Feed laden im Hintergrund und
-  // füllen die UI nach – nichts davon blockiert den Start mehr.
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        backgroundColor: '#111',
+        padding: 24,
+        textAlign: 'center'
+      }}
+    >
+      <div
+        style={{
+          color: 'white',
+          fontSize: 18,
+          maxWidth: 320
+        }}
+      >
+        {noCustomerText(l)}
+      </div>
+    </div>
+  );
+}
+
+if (loading && !branding) {
+  return (
+    <IonApp>
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#111111',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          boxSizing: 'border-box'
+        }}
+      >
+        <div
+          style={{
+            fontSize: 34,
+            fontWeight: 900,
+            letterSpacing: 3,
+            color: '#ffffff',
+            marginBottom: 18
+          }}
+        >
+          ONLANG
+        </div>
+
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            border: '4px solid rgba(255,255,255,0.25)',
+            borderTopColor: '#ffffff',
+            borderRadius: '50%',
+            animation: 'onlang-spin 0.8s linear infinite'
+          }}
+        />
+
+        <div
+          style={{
+            marginTop: 18,
+            color: 'rgba(255,255,255,0.75)',
+            fontSize: 15
+          }}
+        >
+          App wird geladen…
+        </div>
+
+        <style>
+          {`
+            @keyframes onlang-spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+      </div>
+    </IonApp>
+  );
+}
+
+// Ab hier ist Branding vorhanden.
+// Jetzt erst die echte Vereins-App bzw. Login-Ansicht anzeigen.
 
  if (hasTeamLogin && showTeamLogin && !teamLoginDone) {
     return (
