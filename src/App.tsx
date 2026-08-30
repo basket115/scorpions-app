@@ -29,7 +29,7 @@ function initOneSignal(appId: string, kundenId: string) {
       await OneSignal.init({ appId });
 
       if (kundenId) {
-        await OneSignal.User.addTag('kundenId', kundenId);
+        await OneSignal.User.addTag('Kunden-ID', kundenId);
       }
     }
   );
