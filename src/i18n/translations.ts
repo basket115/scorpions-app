@@ -28,6 +28,11 @@ export const translations: Record<string, TranslationRow> = {
   error_falsches_passwort: { de: 'Falsches Passwort!', hu: 'Hibás jelszó!', en: 'Incorrect password!' },
   error_verbindungsfehler: { de: 'Verbindungsfehler', hu: 'Kapcsolati hiba', en: 'Connection error' },
   error_login_fehlgeschlagen: { de: 'Login Fehler', hu: 'Bejelentkezési hiba', en: 'Login error' },
+  app_demo_running: {
+  de: 'Demo läuft noch {tage} Tage',
+  hu: 'A demó még {tage} napig aktív',
+  en: 'Demo active for {tage} more days'
+},
 
   // ── AppHeader.tsx ────────────────────────────────────────────
   lbl_partner: { de: 'PARTNER', hu: 'PARTNER', en: 'PARTNER' },
@@ -80,6 +85,11 @@ export const translations: Record<string, TranslationRow> = {
   //    Bezeichnungen; siehe translateKategorie() unten) ───────────
   kategorie_news: { de: 'News', hu: 'Hírek', en: 'News' },
   kategorie_vorstand: { de: 'Vorstand', hu: 'Vezetőség', en: 'Board' },
+  kategorie_senioren: {
+  de: 'Senioren',
+  hu: 'Felnőttek',
+  en: 'Adults'
+},
   kategorie_jugend: { de: 'Jugend', hu: 'Utánpótlás', en: 'Youth' },
   kategorie_ergebnisse: { de: 'Ergebnisse', hu: 'Eredmények', en: 'Results' },
   kategorie_spielplan: { de: 'Spielplan', hu: 'Menetrend', en: 'Schedule' },
@@ -103,6 +113,7 @@ const KATEGORIE_KEYS: Record<string, string> = {
   Spielplan: 'kategorie_spielplan',
   Damen: 'kategorie_damen',
   Herren: 'kategorie_herren',
+  Senioren: 'kategorie_senioren',
   Infos: 'kategorie_infos',
   Live: 'kategorie_live',
   Verein: 'kategorie_verein',
