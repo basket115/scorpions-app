@@ -435,17 +435,55 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   }, [beitraege, activeKategorie]);
 
   const handleSubmit = async () => {
-    if (!titel || !text) return;
-    setSaving(true);
-    const postKategorie = isTeam && teamMannschaft ? teamMannschaft : (kategorie || kategorienFinal[0] || 'News');
-    const fixedBildUrl = fixGoogleDriveUrl(bildUrl);
-    const fixedVideoUrl = fixGoogleDriveUrl(videoUrl);
-    try {
-      const params = new URLSearchParams({ action: 'add_beitrag', kundenId: branding?.Kunden_ID || '', vereinName: b?.Verein_Name || '', titel, text, bildUrl: fixedBildUrl, videoUrl: fixedVideoUrl, datum: new Date().toLocaleDateString('de-DE'), kategorie: postKategorie });
-      const data = await fetch(`${API_EXEC_URL}?${params}`).then(r => r.json());
-      if (data.success) { setSuccess(t('status_beitrag_gespeichert', '✅ Beitrag gespeichert!')); setTitel(''); setText(''); setBildUrl(''); setVideoUrl(''); setShowForm(false); setTimeout(() => setSuccess(''), 3000); ladeBeitraege(); }
-    } finally { setSaving(false); }
-  };
+  if (!titel || !text) return;
+
+  setSaving(true);
+
+  const postKategorie =
+    isTeam && teamMannschaft
+      ? teamMannschaft
+      : (kategorie || kategorienFinal[0] || 'News');
+
+  const fixedBildUrl = fixGoogleDriveUrl(bildUrl);
+  const fixedVideoUrl = fixGoogleDriveUrl(videoUrl);
+
+  try {
+    const params = new URLSearchParams({
+      action: 'add_beitrag',
+      kundenId: branding?.Kunden_ID || '',
+      vereinName: b?.Verein_Name || '',
+      titel,
+      text,
+      bildUrl: fixedBildUrl,
+      videoUrl: fixedVideoUrl,
+      datum: new Date().toLocaleDateString('de-DE'),
+      kategorie: postKategorie
+    });
+
+    const data = await fetch(`${API_EXEC_URL}?${params}`).then(r => r.json());
+
+    if (data.success) {
+      setSuccess(
+        t('status_beitrag_gespeichert', '✅ Beitrag gespeichert!')
+      );
+
+      setTitel('');
+      setText('');
+      setBildUrl('');
+      setVideoUrl('');
+      setShowForm(false);
+
+      // Wichtig:
+      // neuen Feed vollständig abwarten
+      await ladeBeitraege();
+
+      setTimeout(() => setSuccess(''), 3000);
+    }
+
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleDelete = async (beitrag: any) => {
     const beitragId = String(beitrag.id || beitrag.Id || '').trim();
