@@ -18,12 +18,21 @@ export function fixGoogleDriveUrl(url: string): string {
   return url;
 }
 
-function initOneSignal(appId: string) {
+function initOneSignal(appId: string, kundenId: string) {
   if (!appId) return;
-  (window as any).OneSignalDeferred = (window as any).OneSignalDeferred || [];
-  (window as any).OneSignalDeferred.push(async function (OneSignal: any) {
-    await OneSignal.init({ appId });
-  });
+
+  (window as any).OneSignalDeferred =
+    (window as any).OneSignalDeferred || [];
+
+  (window as any).OneSignalDeferred.push(
+    async function (OneSignal: any) {
+      await OneSignal.init({ appId });
+
+      if (kundenId) {
+        await OneSignal.User.addTag('kundenId', kundenId);
+      }
+    }
+  );
 }
 
 const PasswordInput: React.FC<{
@@ -137,7 +146,7 @@ const t = (key: string, fallback?: string): string => {
     }
 
     const osAppId = brandingData?.OneSignal_App_ID || '';
-    if (osAppId) initOneSignal(osAppId);
+    if (osAppId) initOneSignal(osAppId, kundenId);
   };
 
   const loadBootstrap = async () => {
