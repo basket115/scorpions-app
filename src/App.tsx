@@ -251,7 +251,7 @@ const t = (key: string, fallback?: string): string => {
   // Branding, Übersetzungen, TeamLogin und Feed laden im Hintergrund und
   // füllen die UI nach – nichts davon blockiert den Start mehr.
 
-  if (false && hasTeamLogin && showTeamLogin && !teamLoginDone) {
+ if (hasTeamLogin && showTeamLogin && !teamLoginDone) {
     return (
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
