@@ -2,28 +2,45 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <title>Scorpions Vereins-App</title>
+    <title>ONLANG Vereins-App</title>
     <base href="/" />
     <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="color-scheme" content="light dark" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
-    <link rel="manifest" href="/manifest.json" />
+
+    <link id="onlang-manifest" rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
+
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Scorpions" />
+    <meta name="apple-mobile-web-app-title" content="ONLANG" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="theme-color" content="#b30000" />
+    <meta name="theme-color" content="#111111" />
+
     <script>
       (function() {
-        const kunde = new URLSearchParams(window.location.search).get('kunde')
-                   || localStorage.getItem('kundenId') || 'V002';
-        localStorage.setItem('kundenId', kunde);
-        document.cookie = 'kundenId=' + kunde + '; path=/; max-age=31536000';
+        const params = new URLSearchParams(window.location.search);
+        const kundeAusUrl = (params.get('kunde') || '').trim();
+        const gespeicherterKunde = (localStorage.getItem('kundenId') || '').trim();
+        const kunde = kundeAusUrl || gespeicherterKunde;
+
+        if (kundeAusUrl) {
+          localStorage.setItem('kundenId', kundeAusUrl);
+          document.cookie = 'kundenId=' + encodeURIComponent(kundeAusUrl) + '; path=/; max-age=31536000; SameSite=Lax';
+        }
+
+        const manifest = document.getElementById('onlang-manifest');
+        if (manifest && kunde) {
+          manifest.setAttribute(
+            'href',
+            '/manifest.webmanifest?kunde=' + encodeURIComponent(kunde)
+          );
+        }
       })();
     </script>
   </head>
+
   <body>
     <div id="root"></div>
   </body>
