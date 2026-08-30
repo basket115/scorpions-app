@@ -145,9 +145,8 @@ const t = (key: string, fallback?: string): string => {
       if (appleFavicon) appleFavicon.href = logoUrl;
     }
 
-    const osAppId = brandingData?.OneSignal_App_ID || '';
-    if (osAppId) initOneSignal(osAppId, kundenId);
-  };
+  // Push in Version 1 bewusst deaktiviert
+const osAppId = '';
 
   const loadBootstrap = async () => {
     if (!resolvedKunde) { setLoading(false); return; }
