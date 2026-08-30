@@ -201,23 +201,50 @@ useEffect(() => {
 }, [kundenId]);
   const reload = () => loadBootstrap();
 
-  const handleTeamLogin = async () => {
-    if (!teamPassword.trim()) return;
-    setTeamLoading(true); setTeamError('');
-    try {
-      const res = await fetch(`${API_EXEC_URL}?action=getTeamRole&kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(teamPassword)}`);
-      const data = await res.json();
-      if (data.success) {
-        setTeamRolle(data.rolle); setTeamMannschaft(data.mannschaft); setTeamId(data.team_id);
-        setTeamLoginDone(true); setShowTeamLogin(false); setTeamPassword('');
-        sessionStorage.setItem('teamRolle', data.rolle);
-        sessionStorage.setItem('teamMannschaft', data.mannschaft);
-        sessionStorage.setItem('teamId', data.team_id);
-        sessionStorage.setItem('teamKundenId', kundenId);
-      } else { setTeamError(t('error_falsches_passwort', 'Falsches Passwort!')); }
-    } catch { setTeamError(t('error_verbindungsfehler', 'Verbindungsfehler')); }
-    setTeamLoading(false);
-  };
+const handleTeamLogin = async () => {
+  if (!teamPassword.trim()) return;
+
+  setTeamLoading(true);
+  setTeamError('');
+
+  try {
+    const res = await fetch(
+      `${API_EXEC_URL}?action=getTeamRole&kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(teamPassword)}`
+    );
+
+    const data = await res.json();
+
+    if (data.success) {
+      sessionStorage.setItem('teamRolle', data.rolle);
+      sessionStorage.setItem('teamMannschaft', data.mannschaft);
+      sessionStorage.setItem('teamId', data.team_id);
+      sessionStorage.setItem('teamKundenId', kundenId);
+
+      // Aktuelle Beiträge/Sponsoren neu holen,
+      // damit nach einem Rollenwechsel kein alter Bootstrap-Stand angezeigt wird.
+      await loadBootstrap();
+
+      setTeamRolle(data.rolle);
+      setTeamMannschaft(data.mannschaft);
+      setTeamId(data.team_id);
+      setTeamLoginDone(true);
+      setShowTeamLogin(false);
+      setTeamPassword('');
+
+    } else {
+      setTeamError(
+        t('error_falsches_passwort', 'Falsches Passwort!')
+      );
+    }
+
+  } catch {
+    setTeamError(
+      t('error_verbindungsfehler', 'Verbindungsfehler')
+    );
+  }
+
+  setTeamLoading(false);
+};
 
   const handleTeamLogout = () => {
     sessionStorage.removeItem('teamRolle'); sessionStorage.removeItem('teamMannschaft');
