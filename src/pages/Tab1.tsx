@@ -324,22 +324,45 @@ function formatBeitragDatum(
 ): string {
   if (!datum) return '';
 
-  const match = String(datum).match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  const raw = String(datum).trim();
 
-  if (!match) return datum;
+  // Format: 30.08.2026
+  let match = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
 
-  const [, tag, monat, jahr] = match;
+  if (match) {
+    const [, tag, monat, jahr] = match;
 
-  if (lang === 'hu') {
-    return `${jahr}.${monat.padStart(2, '0')}.${tag.padStart(2, '0')}.`;
+    if (lang === 'hu') {
+      return `${jahr}.${monat.padStart(2, '0')}.${tag.padStart(2, '0')}.`;
+    }
+
+    if (lang === 'en') {
+      return `${monat.padStart(2, '0')}/${tag.padStart(2, '0')}/${jahr}`;
+    }
+
+    return `${tag.padStart(2, '0')}.${monat.padStart(2, '0')}.${jahr}`;
   }
 
-  if (lang === 'en') {
-    return `${monat.padStart(2, '0')}/${tag.padStart(2, '0')}/${jahr}`;
+  // Falls das Backend einmal 2026-08-30 oder 2026-08-30T... liefert
+  match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+
+  if (match) {
+    const [, jahr, monat, tag] = match;
+
+    if (lang === 'hu') {
+      return `${jahr}.${monat.padStart(2, '0')}.${tag.padStart(2, '0')}.`;
+    }
+
+    if (lang === 'en') {
+      return `${monat.padStart(2, '0')}/${tag.padStart(2, '0')}/${jahr}`;
+    }
+
+    return `${tag.padStart(2, '0')}.${monat.padStart(2, '0')}.${jahr}`;
   }
 
-  return `${tag.padStart(2, '0')}.${monat.padStart(2, '0')}.${jahr}`;
+  return raw;
 }
+
 const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const { t, lang } = useLanguage();
   const { branding, bootstrapData, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
