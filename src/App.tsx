@@ -194,7 +194,11 @@ const t = (key: string, fallback?: string): string => {
       else { setHasTeamLogin(false); }
     } catch { setHasTeamLogin(false); }
   };
-
+useEffect(() => {
+  if (kundenId) {
+    checkHasTeamLogin();
+  }
+}, [kundenId]);
   const reload = () => loadBootstrap();
 
   const handleTeamLogin = async () => {
