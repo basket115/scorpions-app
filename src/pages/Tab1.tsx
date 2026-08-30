@@ -78,6 +78,19 @@ function isAktiv(val: any): boolean {
   return val === undefined || val === null || String(val).trim() === '' ? true : val === true || val === 'true' || String(val).toUpperCase() === 'TRUE';
 }
 
+function sponsorDataFromRows(rows: any[], kundenId: string): SponsorData | null {
+  const found = (rows || []).find((r: any) =>
+    String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv)
+  );
+
+  return found ? {
+    logoUrl: found.Logo_URL || undefined,
+    bannerText: found.Banner_Text || undefined,
+    bannerBildUrl: found.Banner_Bild_URL || undefined,
+    linkUrl: found.Banner_Link_URL || undefined
+  } : null;
+}
+
 async function getSponsor(kundenId: string): Promise<SponsorData | null> {
   if (kundenId in sponsorCache) return sponsorCache[kundenId];
   if (kundenId in sponsorInflight) return sponsorInflight[kundenId]; // In-Flight-Dedup: genau EIN Request pro Kunde
@@ -98,11 +111,28 @@ const DEFAULT_SPONSOR: SponsorData = {
   linkUrl: 'https://onlang-app.netlify.app',
 };
 
-const SponsorBanner: React.FC<{ kundenId: string }> = ({ kundenId }) => {
+const SponsorBanner: React.FC<{ kundenId: string; initialSponsor?: SponsorData | null }> = ({ kundenId, initialSponsor }) => {
   const { t } = useLanguage();
-  const [sponsor, setSponsor] = useState<SponsorData | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => { if (!kundenId) return; getSponsor(kundenId).then(s => { setSponsor(s); setLoaded(true); }); }, [kundenId]);
+  const hasBootstrapSponsor = initialSponsor !== undefined;
+  const [sponsor, setSponsor] = useState<SponsorData | null>(initialSponsor ?? null);
+  const [loaded, setLoaded] = useState(hasBootstrapSponsor);
+
+  useEffect(() => {
+    if (!kundenId) return;
+
+    if (initialSponsor !== undefined) {
+      sponsorCache[kundenId] = initialSponsor;
+      setSponsor(initialSponsor);
+      setLoaded(true);
+      return;
+    }
+
+    getSponsor(kundenId).then(s => {
+      setSponsor(s);
+      setLoaded(true);
+    });
+  }, [kundenId, initialSponsor]);
+
   if (!loaded) return null;
   const activeSponsor = sponsor ?? DEFAULT_SPONSOR;
   const bannerInhalt = (
@@ -291,7 +321,7 @@ type Props = { onAdminClick?: () => void };
 
 const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const { t } = useLanguage();
-  const { branding, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
+  const { branding, bootstrapData, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
   const [beitraege, setBeitraege] = useState<any[]>([]);
   const [feedState, setFeedState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const feedLoadingRef = useRef(false);
@@ -314,6 +344,15 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const logoUrl = b?.Logo_verein || b?.Logo_Verein || '';
   const sponsorLogoUrl = b?.Logo_Sponsor || b?.Logo_sponsor || '';
   const kundenId: string = String(branding?.Kunden_ID || '').trim();
+
+  const bootstrapSponsors: any[] | null = Array.isArray(bootstrapData?.sponsors)
+    ? bootstrapData.sponsors
+    : null;
+
+  const bootstrapSponsor = useMemo<SponsorData | null | undefined>(() => {
+    if (bootstrapSponsors === null) return undefined;
+    return sponsorDataFromRows(bootstrapSponsors, kundenId);
+  }, [bootstrapSponsors, kundenId]);
 
   const isAdmin = !!b?.Passwort && isAuthenticated;
   const isTeamAdmin = teamRolle === 'admin';
@@ -364,7 +403,25 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     }
   }, [ladeId]);
 
-  useEffect(() => { ladeBeitraege(); }, [ladeBeitraege]);
+  useEffect(() => {
+    if (Array.isArray(bootstrapData?.beitraege)) {
+      const rows = bootstrapData.beitraege;
+      setBeitraege(rows);
+      setFeedState(rows.length ? 'ready' : 'empty');
+      return;
+    }
+
+    // Solange der Bootstrap noch lädt, keinen parallelen get_beitraege-Request starten.
+    if (loading) return;
+
+    // Fallback nur wenn Bootstrap nicht verfügbar/fehlgeschlagen ist.
+    ladeBeitraege();
+  }, [bootstrapData, loading, ladeBeitraege]);
+
+  useEffect(() => {
+    if (!kundenId || bootstrapSponsor === undefined) return;
+    sponsorCache[kundenId] = bootstrapSponsor;
+  }, [kundenId, bootstrapSponsor]);
 
   useEffect(() => {
     if (!sichtbareKategorien.length) return;
@@ -548,7 +605,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: 'white', borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
                 )}
                 <SocialBar b={b} />
-                {kundenId && <SponsorBanner kundenId={kundenId} />}
+                {kundenId && <SponsorBanner kundenId={kundenId} initialSponsor={bootstrapSponsor} />}
               </div>
             );
           })
