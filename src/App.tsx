@@ -190,7 +190,7 @@ const t = (key: string, fallback?: string): string => {
     try {
       const res = await fetch(`${API_EXEC_URL}?action=checkTeamLogin&kundenId=${encodeURIComponent(kundenId)}`);
       const data = await res.json();
-      if (data.hasTeamLogin) { setHasTeamLogin(true); setShowTeamLogin(true); }
+     if (data.hasTeamLogin) { setHasTeamLogin(true); }
       else { setHasTeamLogin(false); }
     } catch { setHasTeamLogin(false); }
   };
@@ -371,7 +371,20 @@ sprache: String(branding?.Sprache || 'de').toLowerCase(),
       whatsappUrl:  branding?.WhatsApp_URL  || branding?.Whatsapp_URL || branding?.whatsappUrl  || '', // ★ NEU
     }}>
       <IonApp>
-        <Tab1 onAdminClick={showGear ? () => setShowLogin(true) : undefined} />
+        <Tab1
+  onAdminClick={
+    showGear
+      ? () => {
+          if (hasTeamLogin) {
+            setShowTeamLogin(true);
+            setTeamLoginDone(false);
+          } else {
+            setShowLogin(true);
+          }
+        }
+      : undefined
+  }
+/>
       </IonApp>
     </BrandingContext.Provider>
   );
