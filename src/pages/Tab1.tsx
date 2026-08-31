@@ -24,6 +24,14 @@ function optimizeImageUrl(url: string): string {
   return fixGoogleDriveUrl(url);
 }
 
+function stripHtmlText(value: any): string {
+  const html = String(value || '');
+  if (!html) return '';
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return (doc.body.textContent || '').trim();
+}
+
 const CLOUDINARY_CLOUD = 'dhn90jugp';
 const CLOUDINARY_PRESET = 'onlang_upload';
 
@@ -448,12 +456,54 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   }, [ladeId]);
 
   useEffect(() => {
-    if (Array.isArray(bootstrapData?.beitraege)) {
-      const rows = bootstrapData.beitraege;
-      setBeitraege(rows);
-      setFeedState(rows.length ? 'ready' : 'empty');
-      return;
-    }
+  if (Array.isArray(bootstrapData?.beitraege)) {
+    const rows = bootstrapData.beitraege.map((x: any) => ({
+      ...x,
+
+      id:
+        x.id ||
+        x.Spiel_ID ||
+        '',
+
+      Titel:
+        x.Titel ||
+        x.Headline ||
+        '',
+
+      Kurztext:
+        x.Kurztext ||
+        x.Teaser ||
+        '',
+
+      Text:
+        x.Text ||
+        x.App ||
+        stripHtmlText(x.Spielbericht) ||
+        '',
+
+      Bild_URL:
+        x.Bild_URL ||
+        '',
+
+      Video_URL:
+        x.Video_URL ||
+        '',
+
+      Datum:
+        x.Datum ||
+        x.Freigegeben_Am ||
+        x.Erstellt_Am ||
+        '',
+
+      Kategorie:
+        x.Kategorie ||
+        'News'
+    }));
+
+    setBeitraege(rows);
+    setFeedState(rows.length ? 'ready' : 'empty');
+    return;
+  }
 
     // Solange der Bootstrap noch lädt, keinen parallelen get_beitraege-Request starten.
     if (loading) return;
