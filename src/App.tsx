@@ -144,6 +144,7 @@ const t = (key: string, fallback?: string): string => {
       if (favicon) favicon.href = logoUrl;
       if (appleFavicon) appleFavicon.href = logoUrl;
     }
+  };
 
   // Push in Version 1 bewusst deaktiviert
 const osAppId = '';
