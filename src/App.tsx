@@ -203,11 +203,18 @@ const osAppId = '';
       else { setHasTeamLogin(false); }
     } catch { setHasTeamLogin(false); }
   };
+// checkTeamLogin bewusst ENTKOPPELT vom Start:
+// Es läuft erst, NACHDEM der Bootstrap fertig ist (loading === false).
+// Grund: get_bootstrap und checkTeamLogin trafen sonst gleichzeitig den
+// GAS-Motor, der parallele Aufrufe serialisiert -> einer wartete 10-30s
+// in der Warteschlange (die extremen Start-Ladezeiten). Nacheinander
+// gestartet, steht checkTeamLogin nicht mehr im Stau; der Start-Render
+// hängt nicht mehr davon ab.
 useEffect(() => {
-  if (kundenId) {
-    checkHasTeamLogin();
-  }
-}, [kundenId]);
+  if (!kundenId) return;
+  if (loading) return;
+  checkHasTeamLogin();
+}, [kundenId, loading]); // eslint-disable-line
   const reload = () => loadBootstrap();
 
 const handleTeamLogin = async () => {
