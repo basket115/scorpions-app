@@ -11,28 +11,6 @@ export const BrandingContext = createContext<any>(null);
 const API_EXEC_URL =
  "/api/proxy";
 
-// Login-Fetch mit Timeout + automatischem Retry.
-// Faengt den ersten GAS-Timeout ab (Motor kurz belegt), ohne dass der
-// Nutzer mehrfach tippen muss. Ein echtes "Passwort falsch" kommt als
-// normale Antwort zurueck (kein Timeout) und wird NICHT wiederholt.
-async function fetchMitRetry_(url: string, versuche = 3, timeoutMs = 12000): Promise<Response> {
-  let letzterFehler: any;
-  for (let i = 0; i < versuche; i++) {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { signal: ctrl.signal });
-      clearTimeout(tid);
-      return res;
-    } catch (e) {
-      clearTimeout(tid);
-      letzterFehler = e;
-      if (i < versuche - 1) await new Promise(r => setTimeout(r, 800));
-    }
-  }
-  throw letzterFehler;
-}
-
 export function fixGoogleDriveUrl(url: string): string {
   if (!url) return url;
   const match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/);
@@ -114,7 +92,6 @@ const t = (key: string, fallback?: string): string => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [error, setError] = useState('');
-  const [loginLaeuft, setLoginLaeuft] = useState(false);
 
   const [teamRolle, setTeamRolle] = useState<'admin' | 'abtl' | 'team' | null>(null);
   const [teamMannschaft, setTeamMannschaft] = useState('');
@@ -226,18 +203,11 @@ const osAppId = '';
       else { setHasTeamLogin(false); }
     } catch { setHasTeamLogin(false); }
   };
-// checkTeamLogin bewusst ENTKOPPELT vom Start:
-// Es läuft erst, NACHDEM der Bootstrap fertig ist (loading === false).
-// Grund: get_bootstrap und checkTeamLogin trafen sonst gleichzeitig den
-// GAS-Motor, der parallele Aufrufe serialisiert -> einer wartete 10-30s
-// in der Warteschlange (die extremen Start-Ladezeiten). Nacheinander
-// gestartet, steht checkTeamLogin nicht mehr im Stau; der Start-Render
-// hängt nicht mehr davon ab.
 useEffect(() => {
-  if (!kundenId) return;
-  if (loading) return;
-  checkHasTeamLogin();
-}, [kundenId, loading]); // eslint-disable-line
+  if (kundenId) {
+    checkHasTeamLogin();
+  }
+}, [kundenId]);
   const reload = () => loadBootstrap();
 
 const handleTeamLogin = async () => {
@@ -247,9 +217,7 @@ const handleTeamLogin = async () => {
   setTeamError('');
 
   try {
-    // fetchMitRetry_: erster Timeout wird automatisch wiederholt -> auch der
-    // Team-/Hauptadmin-Login (getTeamRole) greift, wenn der Motor kurz belegt ist.
-    const res = await fetchMitRetry_(
+    const res = await fetch(
       `${API_EXEC_URL}?action=getTeamRole&kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(teamPassword)}`
     );
 
@@ -295,21 +263,13 @@ const handleTeamLogin = async () => {
   };
 
   const handleLogin = async () => {
-    if (loginLaeuft) return;              // Doppelklick verhindern
-    setLoginLaeuft(true);
-    setError('');
     try {
-      // fetchMitRetry_: erster Timeout wird automatisch wiederholt -> Login
-      // greift auch, wenn der Motor beim ersten Versuch kurz belegt ist.
-      const res = await fetchMitRetry_(`${API_EXEC_URL}?kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(password)}`);
+      setError('');
+      const res = await fetch(`${API_EXEC_URL}?kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(password)}`);
       const data = await res.json();
       if (data.success) { setIsAuthenticated(true); setShowLogin(false); setPassword(''); }
       else { setError(data.error || t('error_falsches_passwort', 'Falsches Passwort!')); }
-    } catch {
-      setError(t('error_login_fehlgeschlagen', 'Login Fehler'));
-    } finally {
-      setLoginLaeuft(false);
-    }
+    } catch { setError(t('error_login_fehlgeschlagen', 'Login Fehler')); }
   };
 
   const isReadOnly = String(branding?.ReadOnly || '').toUpperCase() === 'TRUE';
@@ -464,9 +424,9 @@ if (loading && !branding) {
             <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('lbl_admin_login', 'Admin Login')}</p>
             <PasswordInput value={password} onChange={setPassword} onEnter={handleLogin} />
             {error && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{error}</p>}
-            <button onClick={handleLogin} disabled={loginLaeuft}
-              style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: loginLaeuft ? 0.7 : 1 }}>
-              {loginLaeuft ? t('btn_login_laeuft', 'Einloggen...') : t('btn_login', 'Einloggen')}
+            <button onClick={handleLogin}
+              style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t('btn_login', 'Einloggen')}
             </button>
             <button onClick={() => { setShowLogin(false); setPassword(''); setError(''); }}
               style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
