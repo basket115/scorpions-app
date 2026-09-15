@@ -247,7 +247,9 @@ const handleTeamLogin = async () => {
   setTeamError('');
 
   try {
-    const res = await fetch(
+    // fetchMitRetry_: erster Timeout wird automatisch wiederholt -> auch der
+    // Team-/Hauptadmin-Login (getTeamRole) greift, wenn der Motor kurz belegt ist.
+    const res = await fetchMitRetry_(
       `${API_EXEC_URL}?action=getTeamRole&kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(teamPassword)}`
     );
 
