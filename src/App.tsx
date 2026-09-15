@@ -144,6 +144,7 @@ const t = (key: string, fallback?: string): string => {
       if (favicon) favicon.href = logoUrl;
       if (appleFavicon) appleFavicon.href = logoUrl;
     }
+
   };
 
   // Push in Version 1 bewusst deaktiviert
@@ -213,8 +214,19 @@ const osAppId = '';
 useEffect(() => {
   if (!kundenId) return;
   if (loading) return;
+  const savedRolle = sessionStorage.getItem('teamRolle');
+  const savedKundenId = sessionStorage.getItem('teamKundenId');
+  if (savedRolle && savedKundenId === kundenId) return;
   checkHasTeamLogin();
 }, [kundenId, loading]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!kundenId || loading || hasTeamLogin === null) return;
+    const manifest = document.getElementById('onlang-manifest');
+    const href = `/manifest.webmanifest?kunde=${encodeURIComponent(kundenId)}`;
+    if (manifest?.getAttribute('href') !== href) manifest?.setAttribute('href', href);
+  }, [kundenId, loading, hasTeamLogin]);
+
   const reload = () => loadBootstrap();
 
 const handleTeamLogin = async () => {
@@ -235,10 +247,6 @@ const handleTeamLogin = async () => {
       sessionStorage.setItem('teamMannschaft', data.mannschaft);
       sessionStorage.setItem('teamId', data.team_id);
       sessionStorage.setItem('teamKundenId', kundenId);
-
-      // Aktuelle Beiträge/Sponsoren neu holen,
-      // damit nach einem Rollenwechsel kein alter Bootstrap-Stand angezeigt wird.
-      await loadBootstrap();
 
       setTeamRolle(data.rolle);
       setTeamMannschaft(data.mannschaft);

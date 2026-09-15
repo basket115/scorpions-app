@@ -9,7 +9,7 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
 
-    <link id="onlang-manifest" rel="manifest" href="/manifest.webmanifest" />
+    <link id="onlang-manifest" rel="manifest" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
 
@@ -35,14 +35,6 @@
             '; path=/; max-age=31536000; SameSite=Lax';
         }
 
-        const manifest = document.getElementById('onlang-manifest');
-
-        if (manifest && kunde) {
-          manifest.setAttribute(
-            'href',
-            '/manifest.webmanifest?kunde=' + encodeURIComponent(kunde)
-          );
-        }
       })();
     </script>
   </head>
