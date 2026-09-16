@@ -24,14 +24,6 @@ function optimizeImageUrl(url: string): string {
   return fixGoogleDriveUrl(url);
 }
 
-function stripHtmlText(value: any): string {
-  const html = String(value || '');
-  if (!html) return '';
-
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return (doc.body.textContent || '').trim();
-}
-
 const CLOUDINARY_CLOUD = 'dhn90jugp';
 const CLOUDINARY_PRESET = 'onlang_upload';
 
@@ -86,19 +78,6 @@ function isAktiv(val: any): boolean {
   return val === undefined || val === null || String(val).trim() === '' ? true : val === true || val === 'true' || String(val).toUpperCase() === 'TRUE';
 }
 
-function sponsorDataFromRows(rows: any[], kundenId: string): SponsorData | null {
-  const found = (rows || []).find((r: any) =>
-    String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv)
-  );
-
-  return found ? {
-    logoUrl: found.Logo_URL || undefined,
-    bannerText: found.Banner_Text || undefined,
-    bannerBildUrl: found.Banner_Bild_URL || undefined,
-    linkUrl: found.Banner_Link_URL || undefined
-  } : null;
-}
-
 async function getSponsor(kundenId: string): Promise<SponsorData | null> {
   if (kundenId in sponsorCache) return sponsorCache[kundenId];
   if (kundenId in sponsorInflight) return sponsorInflight[kundenId]; // In-Flight-Dedup: genau EIN Request pro Kunde
@@ -119,28 +98,11 @@ const DEFAULT_SPONSOR: SponsorData = {
   linkUrl: 'https://onlang-app.netlify.app',
 };
 
-const SponsorBanner: React.FC<{ kundenId: string; initialSponsor?: SponsorData | null }> = ({ kundenId, initialSponsor }) => {
+const SponsorBanner: React.FC<{ kundenId: string }> = ({ kundenId }) => {
   const { t } = useLanguage();
-  const hasBootstrapSponsor = initialSponsor !== undefined;
-  const [sponsor, setSponsor] = useState<SponsorData | null>(initialSponsor ?? null);
-  const [loaded, setLoaded] = useState(hasBootstrapSponsor);
-
-  useEffect(() => {
-    if (!kundenId) return;
-
-    if (initialSponsor !== undefined) {
-      sponsorCache[kundenId] = initialSponsor;
-      setSponsor(initialSponsor);
-      setLoaded(true);
-      return;
-    }
-
-    getSponsor(kundenId).then(s => {
-      setSponsor(s);
-      setLoaded(true);
-    });
-  }, [kundenId, initialSponsor]);
-
+  const [sponsor, setSponsor] = useState<SponsorData | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { if (!kundenId) return; getSponsor(kundenId).then(s => { setSponsor(s); setLoaded(true); }); }, [kundenId]);
   if (!loaded) return null;
   const activeSponsor = sponsor ?? DEFAULT_SPONSOR;
   const bannerInhalt = (
@@ -326,54 +288,10 @@ const KategorienDropdown: React.FC<{
 };
 
 type Props = { onAdminClick?: () => void };
-function formatBeitragDatum(
-  datum: string,
-  lang: 'de' | 'hu' | 'en'
-): string {
-  if (!datum) return '';
-
-  const raw = String(datum).trim();
-
-  // Format: 30.08.2026
-  let match = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-
-  if (match) {
-    const [, tag, monat, jahr] = match;
-
-    if (lang === 'hu') {
-      return `${jahr}.${monat.padStart(2, '0')}.${tag.padStart(2, '0')}.`;
-    }
-
-    if (lang === 'en') {
-      return `${monat.padStart(2, '0')}/${tag.padStart(2, '0')}/${jahr}`;
-    }
-
-    return `${tag.padStart(2, '0')}.${monat.padStart(2, '0')}.${jahr}`;
-  }
-
-  // Falls das Backend einmal 2026-08-30 oder 2026-08-30T... liefert
-  match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-
-  if (match) {
-    const [, jahr, monat, tag] = match;
-
-    if (lang === 'hu') {
-      return `${jahr}.${monat.padStart(2, '0')}.${tag.padStart(2, '0')}.`;
-    }
-
-    if (lang === 'en') {
-      return `${monat.padStart(2, '0')}/${tag.padStart(2, '0')}/${jahr}`;
-    }
-
-    return `${tag.padStart(2, '0')}.${monat.padStart(2, '0')}.${jahr}`;
-  }
-
-  return raw;
-}
 
 const Tab1: React.FC<Props> = ({ onAdminClick }) => {
-  const { t, lang } = useLanguage();
-  const { branding, bootstrapData, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
+  const { t } = useLanguage();
+  const { branding, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
   const [beitraege, setBeitraege] = useState<any[]>([]);
   const [feedState, setFeedState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const feedLoadingRef = useRef(false);
@@ -396,15 +314,6 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const logoUrl = b?.Logo_verein || b?.Logo_Verein || '';
   const sponsorLogoUrl = b?.Logo_Sponsor || b?.Logo_sponsor || '';
   const kundenId: string = String(branding?.Kunden_ID || '').trim();
-
-  const bootstrapSponsors: any[] | null = Array.isArray(bootstrapData?.sponsors)
-    ? bootstrapData.sponsors
-    : null;
-
-  const bootstrapSponsor = useMemo<SponsorData | null | undefined>(() => {
-    if (bootstrapSponsors === null) return undefined;
-    return sponsorDataFromRows(bootstrapSponsors, kundenId);
-  }, [bootstrapSponsors, kundenId]);
 
   const isAdmin = !!b?.Passwort && isAuthenticated;
   const isTeamAdmin = teamRolle === 'admin';
@@ -455,67 +364,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     }
   }, [ladeId]);
 
-  useEffect(() => {
-  if (Array.isArray(bootstrapData?.beitraege)) {
-    const rows = bootstrapData.beitraege.map((x: any) => ({
-      ...x,
-
-      id:
-        x.id ||
-        x.Spiel_ID ||
-        '',
-
-      Titel:
-        x.Titel ||
-        x.Headline ||
-        '',
-
-      Kurztext:
-        x.Kurztext ||
-        x.Teaser ||
-        '',
-
-      Text:
-        x.Text ||
-        x.App ||
-        stripHtmlText(x.Spielbericht) ||
-        '',
-
-      Bild_URL:
-        x.Bild_URL ||
-        '',
-
-      Video_URL:
-        x.Video_URL ||
-        '',
-
-      Datum:
-        x.Datum ||
-        x.Freigegeben_Am ||
-        x.Erstellt_Am ||
-        '',
-
-      Kategorie:
-        x.Kategorie ||
-        'News'
-    }));
-
-    setBeitraege(rows);
-    setFeedState(rows.length ? 'ready' : 'empty');
-    return;
-  }
-
-    // Solange der Bootstrap noch lädt, keinen parallelen get_beitraege-Request starten.
-    if (loading) return;
-
-    // Fallback nur wenn Bootstrap nicht verfügbar/fehlgeschlagen ist.
-    ladeBeitraege();
-  }, [bootstrapData, loading, ladeBeitraege]);
-
-  useEffect(() => {
-    if (!kundenId || bootstrapSponsor === undefined) return;
-    sponsorCache[kundenId] = bootstrapSponsor;
-  }, [kundenId, bootstrapSponsor]);
+  useEffect(() => { ladeBeitraege(); }, [ladeBeitraege]);
 
   useEffect(() => {
     if (!sichtbareKategorien.length) return;
@@ -529,55 +378,17 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   }, [beitraege, activeKategorie]);
 
   const handleSubmit = async () => {
-  if (!titel || !text) return;
-
-  setSaving(true);
-
-  const postKategorie =
-    isTeam && teamMannschaft
-      ? teamMannschaft
-      : (kategorie || kategorienFinal[0] || 'News');
-
-  const fixedBildUrl = fixGoogleDriveUrl(bildUrl);
-  const fixedVideoUrl = fixGoogleDriveUrl(videoUrl);
-
-  try {
-    const params = new URLSearchParams({
-      action: 'add_beitrag',
-      kundenId: branding?.Kunden_ID || '',
-      vereinName: b?.Verein_Name || '',
-      titel,
-      text,
-      bildUrl: fixedBildUrl,
-      videoUrl: fixedVideoUrl,
-      datum: new Date().toLocaleDateString('de-DE'),
-      kategorie: postKategorie
-    });
-
-    const data = await fetch(`${API_EXEC_URL}?${params}`).then(r => r.json());
-
-    if (data.success) {
-      setSuccess(
-        t('status_beitrag_gespeichert', '✅ Beitrag gespeichert!')
-      );
-
-      setTitel('');
-      setText('');
-      setBildUrl('');
-      setVideoUrl('');
-      setShowForm(false);
-
-      // Wichtig:
-      // neuen Feed vollständig abwarten
-      await ladeBeitraege();
-
-      setTimeout(() => setSuccess(''), 3000);
-    }
-
-  } finally {
-    setSaving(false);
-  }
-};
+    if (!titel || !text) return;
+    setSaving(true);
+    const postKategorie = isTeam && teamMannschaft ? teamMannschaft : (kategorie || kategorienFinal[0] || 'News');
+    const fixedBildUrl = fixGoogleDriveUrl(bildUrl);
+    const fixedVideoUrl = fixGoogleDriveUrl(videoUrl);
+    try {
+      const params = new URLSearchParams({ action: 'add_beitrag', kundenId: branding?.Kunden_ID || '', vereinName: b?.Verein_Name || '', titel, text, bildUrl: fixedBildUrl, videoUrl: fixedVideoUrl, datum: new Date().toLocaleDateString('de-DE'), kategorie: postKategorie });
+      const data = await fetch(`${API_EXEC_URL}?${params}`).then(r => r.json());
+      if (data.success) { setSuccess(t('status_beitrag_gespeichert', '✅ Beitrag gespeichert!')); setTitel(''); setText(''); setBildUrl(''); setVideoUrl(''); setShowForm(false); setTimeout(() => setSuccess(''), 3000); ladeBeitraege(); }
+    } finally { setSaving(false); }
+  };
 
   const handleDelete = async (beitrag: any) => {
     const beitragId = String(beitrag.id || beitrag.Id || '').trim();
@@ -725,7 +536,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   />
 </div>
 )}
-                <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {formatBeitragDatum(beitrag.Datum, lang)}</div>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {beitrag.Datum}</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: 24, lineHeight: 1.25, color: '#222', paddingRight: darfLoeschen ? 90 : 0 }}>{beitrag.Titel}</h3>
                 <p style={{ margin: 0, color: '#555', fontSize: 16, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{beitrag.Text}</p>
                 {embedUrl && (
@@ -737,12 +548,14 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: 'white', borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
                 )}
                 <SocialBar b={b} />
-                {kundenId && <SponsorBanner kundenId={kundenId} initialSponsor={bootstrapSponsor} />}
               </div>
             );
           })
         )}
       </div>
+
+      {/* Sponsor-Banner: genau EINE Instanz auf der gesamten Feed-Seite */}
+      {kundenId && <SponsorBanner kundenId={kundenId} />}
 
       {/* Footer */}
       <div style={{ background: themaFarbe, padding: '16px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
