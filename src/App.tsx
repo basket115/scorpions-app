@@ -18,21 +18,12 @@ export function fixGoogleDriveUrl(url: string): string {
   return url;
 }
 
-function initOneSignal(appId: string, kundenId: string) {
+function initOneSignal(appId: string) {
   if (!appId) return;
-
-  (window as any).OneSignalDeferred =
-    (window as any).OneSignalDeferred || [];
-
-  (window as any).OneSignalDeferred.push(
-    async function (OneSignal: any) {
-      await OneSignal.init({ appId });
-
-      if (kundenId) {
-        await OneSignal.User.addTag('Kunden-ID', kundenId);
-      }
-    }
-  );
+  (window as any).OneSignalDeferred = (window as any).OneSignalDeferred || [];
+  (window as any).OneSignalDeferred.push(async function (OneSignal: any) {
+    await OneSignal.init({ appId });
+  });
 }
 
 const PasswordInput: React.FC<{
@@ -75,7 +66,6 @@ const PasswordInput: React.FC<{
 const App: React.FC = () => {
   const { t: languageT, setLang } = useLanguage();
   const [branding, setBranding] = useState<any>(null);
-  const [bootstrapData, setBootstrapData] = useState<any>(null);
  const [uebersetzungen, setUebersetzungen] = useState<Record<string, string>>({});
 
 const t = (key: string, fallback?: string): string => {
@@ -106,81 +96,49 @@ const t = (key: string, fallback?: string): string => {
   const resolvedKunde = resolveCustomerId();
   const kundenId = resolvedKunde || '';
 
-  const applyBranding = (brandingData: any) => {
-    setBranding(brandingData);
-    const brandingSprache = String(
-      brandingData?.Sprache || 'de'
-    ).toLowerCase();
-
-    const sprache: 'de' | 'hu' | 'en' =
-      brandingSprache === 'hu' || brandingSprache === 'en'
-        ? brandingSprache
-        : 'de';
-
-    setLang(sprache);
-    setUebersetzungen({});
-
-    const vereinName = brandingData?.Verein_Name || 'Sport App';
-    const themaFarbe = brandingData?.Thema_Farbe || '#111111';
-    const logoUrl = brandingData?.Logo_Verein || brandingData?.Logo_verein || '';
-    document.title = vereinName;
-
-    const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-    if (appleMeta) appleMeta.setAttribute('content', vereinName);
-
-    let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
-    if (themeColorMeta) {
-      themeColorMeta.setAttribute('content', themaFarbe);
-    } else {
-      themeColorMeta = document.createElement('meta');
-      themeColorMeta.name = 'theme-color';
-      themeColorMeta.content = themaFarbe;
-      document.head.appendChild(themeColorMeta);
-    }
-
-    if (logoUrl) {
-      const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-      const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-      if (favicon) favicon.href = logoUrl;
-      if (appleFavicon) appleFavicon.href = logoUrl;
-    }
-  };
-
-  // Push in Version 1 bewusst deaktiviert
-const osAppId = '';
-
-  const loadBootstrap = async () => {
+  const loadBranding = async () => {
     if (!resolvedKunde) { setLoading(false); return; }
     setLoading(true);
-
     try {
-      const res = await fetch(`${API_EXEC_URL}?action=get_bootstrap&kundenId=${encodeURIComponent(kundenId)}`);
+      const res = await fetch(`${API_EXEC_URL}?action=get_branding&kundenId=${kundenId}`);
       const data = await res.json();
+      if (data.success) {
+        setBranding(data.branding);
+       const brandingSprache = String(
+  data.branding?.Sprache || 'de'
+).toLowerCase();
 
-      if (data?.success && data?.branding) {
-        setBootstrapData(data);
-        applyBranding(data.branding);
-        return;
+const sprache: 'de' | 'hu' | 'en' =
+  brandingSprache === 'hu' || brandingSprache === 'en'
+    ? brandingSprache
+    : 'de';
+
+setLang(sprache);
+
+setUebersetzungen({});
+        const vereinName = data.branding?.Verein_Name || 'Sport App';
+        const themaFarbe = data.branding?.Thema_Farbe || '#111111';
+        const logoUrl = data.branding?.Logo_Verein || data.branding?.Logo_verein || '';
+        document.title = vereinName;
+        const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+        if (appleMeta) appleMeta.setAttribute('content', vereinName);
+        let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+        if (themeColorMeta) { themeColorMeta.setAttribute('content', themaFarbe); }
+        else { themeColorMeta = document.createElement('meta'); themeColorMeta.name = 'theme-color'; themeColorMeta.content = themaFarbe; document.head.appendChild(themeColorMeta); }
+        if (logoUrl) {
+          const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+          const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+          if (favicon) favicon.href = logoUrl;
+          if (appleFavicon) appleFavicon.href = logoUrl;
+        }
+        const osAppId = data.branding?.OneSignal_App_ID || '';
+        if (osAppId) initOneSignal(osAppId);
       }
-
-      throw new Error(data?.error || 'Bootstrap konnte nicht geladen werden');
-    } catch (bootstrapErr) {
-      console.warn('[Bootstrap] Fallback auf get_branding', bootstrapErr);
-      setBootstrapData(null);
-
-      try {
-        const res = await fetch(`${API_EXEC_URL}?action=get_branding&kundenId=${encodeURIComponent(kundenId)}`);
-        const data = await res.json();
-        if (data?.success && data?.branding) applyBranding(data.branding);
-      } catch (brandingErr) {
-        console.error(brandingErr);
-      }
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    setLoading(false);
   };
 
-  useEffect(() => { loadBootstrap(); }, []); // eslint-disable-line
+  useEffect(() => { loadBranding(); }, []); // eslint-disable-line
 
   useEffect(() => {
     if (!kundenId) { setHasTeamLogin(false); return; }
@@ -199,68 +157,30 @@ const osAppId = '';
     try {
       const res = await fetch(`${API_EXEC_URL}?action=checkTeamLogin&kundenId=${encodeURIComponent(kundenId)}`);
       const data = await res.json();
-     if (data.hasTeamLogin) { setHasTeamLogin(true); }
+      if (data.hasTeamLogin) { setHasTeamLogin(true); setShowTeamLogin(true); }
       else { setHasTeamLogin(false); }
     } catch { setHasTeamLogin(false); }
   };
-// checkTeamLogin bewusst ENTKOPPELT vom Start:
-// Es läuft erst, NACHDEM der Bootstrap fertig ist (loading === false).
-// Grund: get_bootstrap und checkTeamLogin trafen sonst gleichzeitig den
-// GAS-Motor, der parallele Aufrufe serialisiert -> einer wartete 10-30s
-// in der Warteschlange (die extremen Start-Ladezeiten). Nacheinander
-// gestartet, steht checkTeamLogin nicht mehr im Stau; der Start-Render
-// hängt nicht mehr davon ab.
-useEffect(() => {
-  if (!kundenId) return;
-  if (loading) return;
-  checkHasTeamLogin();
-}, [kundenId, loading]); // eslint-disable-line
-  const reload = () => loadBootstrap();
 
-const handleTeamLogin = async () => {
-  if (!teamPassword.trim()) return;
+  const reload = () => loadBranding();
 
-  setTeamLoading(true);
-  setTeamError('');
-
-  try {
-    const res = await fetch(
-      `${API_EXEC_URL}?action=getTeamRole&kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(teamPassword)}`
-    );
-
-    const data = await res.json();
-
-    if (data.success) {
-      sessionStorage.setItem('teamRolle', data.rolle);
-      sessionStorage.setItem('teamMannschaft', data.mannschaft);
-      sessionStorage.setItem('teamId', data.team_id);
-      sessionStorage.setItem('teamKundenId', kundenId);
-
-      // Aktuelle Beiträge/Sponsoren neu holen,
-      // damit nach einem Rollenwechsel kein alter Bootstrap-Stand angezeigt wird.
-      await loadBootstrap();
-
-      setTeamRolle(data.rolle);
-      setTeamMannschaft(data.mannschaft);
-      setTeamId(data.team_id);
-      setTeamLoginDone(true);
-      setShowTeamLogin(false);
-      setTeamPassword('');
-
-    } else {
-      setTeamError(
-        t('error_falsches_passwort', 'Falsches Passwort!')
-      );
-    }
-
-  } catch {
-    setTeamError(
-      t('error_verbindungsfehler', 'Verbindungsfehler')
-    );
-  }
-
-  setTeamLoading(false);
-};
+  const handleTeamLogin = async () => {
+    if (!teamPassword.trim()) return;
+    setTeamLoading(true); setTeamError('');
+    try {
+      const res = await fetch(`${API_EXEC_URL}?action=getTeamRole&kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(teamPassword)}`);
+      const data = await res.json();
+      if (data.success) {
+        setTeamRolle(data.rolle); setTeamMannschaft(data.mannschaft); setTeamId(data.team_id);
+        setTeamLoginDone(true); setShowTeamLogin(false); setTeamPassword('');
+        sessionStorage.setItem('teamRolle', data.rolle);
+        sessionStorage.setItem('teamMannschaft', data.mannschaft);
+        sessionStorage.setItem('teamId', data.team_id);
+        sessionStorage.setItem('teamKundenId', kundenId);
+      } else { setTeamError(t('error_falsches_passwort', 'Falsches Passwort!')); }
+    } catch { setTeamError(t('error_verbindungsfehler', 'Verbindungsfehler')); }
+    setTeamLoading(false);
+  };
 
   const handleTeamLogout = () => {
     sessionStorage.removeItem('teamRolle'); sessionStorage.removeItem('teamMannschaft');
@@ -285,101 +205,20 @@ const handleTeamLogin = async () => {
   const themaFarbe = branding?.Thema_Farbe || '#111111';
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
 
-if (!resolvedKunde) {
-  const l = (
-    new URLSearchParams(window.location.search).get('lang') || 'de'
-  ).toLowerCase();
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        backgroundColor: '#111',
-        padding: 24,
-        textAlign: 'center'
-      }}
-    >
-      <div
-        style={{
-          color: 'white',
-          fontSize: 18,
-          maxWidth: 320
-        }}
-      >
-        {noCustomerText(l)}
+  if (!resolvedKunde) {
+    const l = (new URLSearchParams(window.location.search).get('lang') || 'de').toLowerCase();
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#111', padding: 24, textAlign: 'center' }}>
+        <div style={{ color: 'white', fontSize: 18, maxWidth: 320 }}>{noCustomerText(l)}</div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-if (loading && !branding) {
-  return (
-    <IonApp>
-      <div
-        style={{
-          minHeight: '100vh',
-          background: '#111111',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          boxSizing: 'border-box'
-        }}
-      >
-        <div
-          style={{
-            fontSize: 34,
-            fontWeight: 900,
-            letterSpacing: 3,
-            color: '#ffffff',
-            marginBottom: 18
-          }}
-        >
-          ONLANG
-        </div>
+  // Render-Sperre entfernt: Der erste Bildschirm (Menü/Header) erscheint SOFORT.
+  // Branding, Übersetzungen, TeamLogin und Feed laden im Hintergrund und
+  // füllen die UI nach – nichts davon blockiert den Start mehr.
 
-        <div
-          style={{
-            width: 34,
-            height: 34,
-            border: '4px solid rgba(255,255,255,0.25)',
-            borderTopColor: '#ffffff',
-            borderRadius: '50%',
-            animation: 'onlang-spin 0.8s linear infinite'
-          }}
-        />
-
-        <div
-          style={{
-            marginTop: 18,
-            color: 'rgba(255,255,255,0.75)',
-            fontSize: 15
-          }}
-        >
-          App wird geladen…
-        </div>
-
-        <style>
-          {`
-            @keyframes onlang-spin {
-              from { transform: rotate(0deg); }
-              to { transform: rotate(360deg); }
-            }
-          `}
-        </style>
-      </div>
-    </IonApp>
-  );
-}
-
-// Ab hier ist Branding vorhanden.
-// Jetzt erst die echte Vereins-App bzw. Login-Ansicht anzeigen.
-
- if (hasTeamLogin && showTeamLogin && !teamLoginDone) {
+  if (false && hasTeamLogin && showTeamLogin && !teamLoginDone) {
     return (
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
@@ -450,7 +289,6 @@ if (loading && !branding) {
      t,
 sprache: String(branding?.Sprache || 'de').toLowerCase(),
       branding,
-      bootstrapData,
       loading,
       reload,
       isAuthenticated,
@@ -468,20 +306,7 @@ sprache: String(branding?.Sprache || 'de').toLowerCase(),
       whatsappUrl:  branding?.WhatsApp_URL  || branding?.Whatsapp_URL || branding?.whatsappUrl  || '', // ★ NEU
     }}>
       <IonApp>
-        <Tab1
-  onAdminClick={
-    showGear
-      ? () => {
-          if (hasTeamLogin) {
-            setShowTeamLogin(true);
-            setTeamLoginDone(false);
-          } else {
-            setShowLogin(true);
-          }
-        }
-      : undefined
-  }
-/>
+        <Tab1 onAdminClick={showGear ? () => setShowLogin(true) : undefined} />
       </IonApp>
     </BrandingContext.Provider>
   );
