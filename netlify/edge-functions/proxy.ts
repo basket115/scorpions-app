@@ -1,5 +1,6 @@
 import type { Context } from "https://edge.netlify.com";
 import { fetchSupabaseBranding } from "./lib/supabaseBranding.ts";
+import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
 
@@ -38,12 +39,14 @@ export default async (request: Request, context: Context) => {
       // holen, damit sich die Ladezeit gegenueber vorher nicht verlangsamt.
       // allSettled statt all: ein haengendes/fehlerhaftes GAS darf das
       // bereits vorliegende Supabase-Branding nicht mit sich reissen.
-      const [gasResult, supabaseResult] = await Promise.allSettled([
+      const [gasResult, supabaseResult, supabaseBeitraegeResult] = await Promise.allSettled([
         gasFetchPromise,
         fetchSupabaseBranding(kundenId),
+        fetchSupabaseBeitraege(kundenId),
       ]);
 
       const supabaseBranding = supabaseResult.status === "fulfilled" ? supabaseResult.value : null;
+      const supabaseBeitraege = supabaseBeitraegeResult.status === "fulfilled" ? supabaseBeitraegeResult.value : null;
 
       let data: any = null;
       if (gasResult.status === "fulfilled") {
@@ -64,6 +67,11 @@ export default async (request: Request, context: Context) => {
           // bleiben unveraendert aus GAS.
           Object.assign(data.branding, supabaseBranding);
         }
+        if (supabaseBeitraege) {
+          // Beitraege kommen jetzt aus Supabase statt aus GAS. Schlaegt
+          // Supabase fehl, bleiben die GAS-Beitraege unveraendert stehen.
+          data.beitraege = supabaseBeitraege;
+        }
         return new Response(JSON.stringify(data), { status: 200, headers: RESPONSE_HEADERS });
       }
 
@@ -73,7 +81,7 @@ export default async (request: Request, context: Context) => {
         const fallback = {
           success: true,
           branding: { ...supabaseBranding },
-          beitraege: [],
+          beitraege: supabaseBeitraege ?? [],
           sponsoren: [],
           gasUnavailable: true,
         };
