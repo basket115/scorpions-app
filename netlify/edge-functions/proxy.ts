@@ -2,6 +2,7 @@ import type { Context } from "https://edge.netlify.com";
 import { fetchSupabaseBranding } from "./lib/supabaseBranding.ts";
 import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
+import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
 
@@ -109,6 +110,66 @@ export default async (request: Request, context: Context) => {
         // Sponsoren kommen jetzt aus Supabase statt aus GAS.
         return new Response(
           JSON.stringify({ success: true, sponsors: supabaseSponsoren }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      // Supabase-Fehlerfall: unveraendert auf GAS zurueckfallen.
+      if (gasResult.status === "fulfilled") {
+        const data = await gasResult.value.text();
+        return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
+      }
+
+      return new Response(
+        JSON.stringify({ success: false, error: "Proxy Fehler" }),
+        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+      );
+    }
+
+    if (action === "checkTeamLogin") {
+      const kundenId = url.searchParams.get("kundenId") || "";
+      const [gasResult, hasTeamLoginResult] = await Promise.allSettled([
+        gasFetchPromise,
+        fetchSupabaseHasTeamLogin(kundenId),
+      ]);
+
+      const hasTeamLogin =
+        hasTeamLoginResult.status === "fulfilled" ? hasTeamLoginResult.value : null;
+
+      if (hasTeamLogin !== null) {
+        return new Response(
+          JSON.stringify({ hasTeamLogin }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      // Supabase-Fehlerfall: unveraendert auf GAS zurueckfallen.
+      if (gasResult.status === "fulfilled") {
+        const data = await gasResult.value.text();
+        return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
+      }
+
+      return new Response(
+        JSON.stringify({ success: false, error: "Proxy Fehler" }),
+        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+      );
+    }
+
+    if (action === "getTeamRole") {
+      const kundenId = url.searchParams.get("kundenId") || "";
+      const password = url.searchParams.get("password") || "";
+      const [gasResult, teamRoleResult] = await Promise.allSettled([
+        gasFetchPromise,
+        fetchSupabaseTeamRole(kundenId, password),
+      ]);
+
+      const teamRole = teamRoleResult.status === "fulfilled" ? teamRoleResult.value : null;
+
+      if (teamRole !== null) {
+        // Sowohl Treffer als auch "falsches Passwort" sind definitive
+        // Antworten aus Supabase - kein GAS-Fallback in beiden Faellen.
+        return new Response(
+          JSON.stringify(teamRole),
           { status: 200, headers: RESPONSE_HEADERS }
         );
       }
