@@ -29,26 +29,61 @@ export default async (request: Request, context: Context) => {
       headers: { "User-Agent": "Netlify-Edge-Proxy/1.0" },
       redirect: "follow",
       cache: "no-store",
+      signal: AbortSignal.timeout(6000),
     });
 
     if (action === "get_bootstrap") {
       const kundenId = url.searchParams.get("kundenId") || "";
       // GAS-Antwort (beitraege/sponsors) und Supabase-Branding parallel
       // holen, damit sich die Ladezeit gegenueber vorher nicht verlangsamt.
-      const [response, supabaseBranding] = await Promise.all([
+      // allSettled statt all: ein haengendes/fehlerhaftes GAS darf das
+      // bereits vorliegende Supabase-Branding nicht mit sich reissen.
+      const [gasResult, supabaseResult] = await Promise.allSettled([
         gasFetchPromise,
         fetchSupabaseBranding(kundenId),
       ]);
-      const data = await response.json();
 
-      if (supabaseBranding && data?.branding) {
-        // Nur die aus Supabase uebersetzten Felder ueberschreiben - alle
-        // anderen Branding-Felder (Passwort, Social-URLs, Demo_Ende, ...)
-        // bleiben unveraendert aus GAS.
-        Object.assign(data.branding, supabaseBranding);
+      const supabaseBranding = supabaseResult.status === "fulfilled" ? supabaseResult.value : null;
+
+      let data: any = null;
+      if (gasResult.status === "fulfilled") {
+        try {
+          data = await gasResult.value.json();
+        } catch (parseError) {
+          console.error("[Proxy] GAS-Antwort nicht als JSON lesbar", parseError);
+          data = null;
+        }
+      } else {
+        console.error("[Proxy] GAS-Fetch fehlgeschlagen", gasResult.reason);
       }
 
-      return new Response(JSON.stringify(data), { status: 200, headers: RESPONSE_HEADERS });
+      if (data) {
+        if (supabaseBranding && data.branding) {
+          // Nur die aus Supabase uebersetzten Felder ueberschreiben - alle
+          // anderen Branding-Felder (Passwort, Social-URLs, Demo_Ende, ...)
+          // bleiben unveraendert aus GAS.
+          Object.assign(data.branding, supabaseBranding);
+        }
+        return new Response(JSON.stringify(data), { status: 200, headers: RESPONSE_HEADERS });
+      }
+
+      if (supabaseBranding) {
+        // GAS nicht verfuegbar, aber Supabase-Branding da: App bekommt
+        // wenigstens das Branding statt komplett zu scheitern.
+        const fallback = {
+          success: true,
+          branding: { ...supabaseBranding },
+          beitraege: [],
+          sponsoren: [],
+          gasUnavailable: true,
+        };
+        return new Response(JSON.stringify(fallback), { status: 200, headers: RESPONSE_HEADERS });
+      }
+
+      return new Response(
+        JSON.stringify({ success: false, error: "Proxy Fehler" }),
+        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+      );
     }
 
     const response = await gasFetchPromise;
