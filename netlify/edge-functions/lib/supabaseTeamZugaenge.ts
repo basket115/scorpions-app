@@ -78,7 +78,7 @@ export async function fetchSupabaseTeamRole(
       `${creds.supabaseUrl}/rest/v1/team_zugaenge` +
       `?kunden_id=eq.${encodeURIComponent(kundenId)}` +
       `&aktiv=eq.true` +
-      `&select=team_id,mannschaft,rolle,passwort`;
+      `&select=*`;
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
