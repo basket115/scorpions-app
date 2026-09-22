@@ -34,7 +34,6 @@ export async function fetchSupabaseHasTeamLogin(
       method: "GET",
       headers: {
         apikey: creds.serviceRoleKey,
-        Authorization: `Bearer ${creds.serviceRoleKey}`,
       },
       signal: AbortSignal.timeout(4000),
     });
@@ -84,7 +83,6 @@ export async function fetchSupabaseTeamRole(
       method: "GET",
       headers: {
         apikey: creds.serviceRoleKey,
-        Authorization: `Bearer ${creds.serviceRoleKey}`,
       },
       signal: AbortSignal.timeout(4000),
     });
