@@ -1,18 +1,17 @@
-// Team-Login gegen die Supabase-Tabelle "team_zugaenge". Diese Tabelle
-// hat bewusst KEINE oeffentliche Lese-Policy - jeder Zugriff hier laeuft
-// ausschliesslich ueber den GEHEIMEN SUPABASE_SERVICE_ROLE_KEY, der RLS
-// umgeht und NIE an den Browser weitergegeben werden darf.
+// Team-Login gegen die Supabase-Tabelle "team_zugaenge". Die Tabelle hat
+// eine oeffentliche SELECT-Policy - der Zugriff laeuft wie bei Branding/
+// Beitraege/Sponsoren ueber den oeffentlichen SUPABASE_ANON_KEY.
 
 type SupabaseTeamRow = Record<string, unknown>;
 
-function getServiceCredentials(): { supabaseUrl: string; serviceRoleKey: string } | null {
+function getAnonCredentials(): { supabaseUrl: string; anonKey: string } | null {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[Supabase Team] SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY nicht gesetzt");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) {
+    console.error("[Supabase Team] SUPABASE_URL/SUPABASE_ANON_KEY nicht gesetzt");
     return null;
   }
-  return { supabaseUrl, serviceRoleKey };
+  return { supabaseUrl, anonKey };
 }
 
 // Prueft nur, OB es fuer einen Kunden ueberhaupt Team-Zugaenge gibt -
@@ -24,7 +23,7 @@ export async function fetchSupabaseHasTeamLogin(
 ): Promise<boolean | null> {
   if (!kundenId) return null;
 
-  const creds = getServiceCredentials();
+  const creds = getAnonCredentials();
   if (!creds) return null;
 
   try {
@@ -33,7 +32,7 @@ export async function fetchSupabaseHasTeamLogin(
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
-        apikey: creds.serviceRoleKey,
+        apikey: creds.anonKey,
       },
       signal: AbortSignal.timeout(4000),
     });
@@ -70,7 +69,7 @@ export async function fetchSupabaseTeamRole(
 ): Promise<TeamRoleResult | null> {
   if (!kundenId || !password) return null;
 
-  const creds = getServiceCredentials();
+  const creds = getAnonCredentials();
   if (!creds) return null;
 
   try {
@@ -82,7 +81,7 @@ export async function fetchSupabaseTeamRole(
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
-        apikey: creds.serviceRoleKey,
+        apikey: creds.anonKey,
       },
       signal: AbortSignal.timeout(4000),
     });
