@@ -542,19 +542,27 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const fixedVideoUrl = fixGoogleDriveUrl(videoUrl);
 
   try {
-    const params = new URLSearchParams({
-      action: 'add_beitrag',
-      kundenId: branding?.Kunden_ID || '',
-      vereinName: b?.Verein_Name || '',
-      titel,
-      text,
-      bildUrl: fixedBildUrl,
-      videoUrl: fixedVideoUrl,
-      datum: new Date().toLocaleDateString('de-DE'),
-      kategorie: postKategorie
-    });
+    // Speichern nur über Supabase: Zugang (team_id + Kunden-ID + Passwort)
+    // prüft der Proxy serverseitig, Passwort im Body statt in der URL.
+    const data = await fetch(`${API_EXEC_URL}?action=beitragErstellen`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kundenId: sessionStorage.getItem('teamKundenId') || branding?.Kunden_ID || '',
+        teamId: sessionStorage.getItem('teamId') || '',
+        passwort: sessionStorage.getItem('teamPasswort') || '',
+        titel,
+        text,
+        bildUrl: fixedBildUrl,
+        videoUrl: fixedVideoUrl,
+        kategorie: postKategorie
+      })
+    }).then(r => r.json());
 
-    const data = await fetch(`${API_EXEC_URL}?${params}`).then(r => r.json());
+    if (!data.success) {
+      alert(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt')));
+      return;
+    }
 
     if (data.success) {
       setSuccess(
@@ -574,6 +582,8 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
       setTimeout(() => setSuccess(''), 3000);
     }
 
+  } catch {
+    alert(t('error_verbindungsfehler', 'Verbindungsfehler'));
   } finally {
     setSaving(false);
   }

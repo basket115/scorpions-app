@@ -228,6 +228,8 @@ const handleTeamLogin = async () => {
       sessionStorage.setItem('teamMannschaft', data.mannschaft);
       sessionStorage.setItem('teamId', data.team_id);
       sessionStorage.setItem('teamKundenId', kundenId);
+      // Wird beim Speichern von Beitraegen mitgeschickt und serverseitig geprueft.
+      sessionStorage.setItem('teamPasswort', teamPassword);
 
       // Aktuelle Beiträge/Sponsoren neu holen,
       // damit nach einem Rollenwechsel kein alter Bootstrap-Stand angezeigt wird.
@@ -258,6 +260,7 @@ const handleTeamLogin = async () => {
   const handleTeamLogout = () => {
     sessionStorage.removeItem('teamRolle'); sessionStorage.removeItem('teamMannschaft');
     sessionStorage.removeItem('teamId'); sessionStorage.removeItem('teamKundenId');
+    sessionStorage.removeItem('teamPasswort');
     setTeamRolle(null); setTeamMannschaft(''); setTeamId('');
     setTeamLoginDone(false); setShowTeamLogin(true);
   };

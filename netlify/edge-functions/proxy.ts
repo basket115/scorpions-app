@@ -3,6 +3,7 @@ import { fetchSupabaseBranding } from "./lib/supabaseBranding.ts";
 import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
+import { pruefeZugang, createBeitrag } from "./lib/supabaseBeitraegeSchreiben.ts";
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
 
@@ -24,6 +25,75 @@ export default async (request: Request, context: Context) => {
   const action = url.searchParams.get("action");
 
   try {
+    if (action === "beitragErstellen") {
+      // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
+      // dem Start von gasFetchPromise, damit nichts an GAS geht. Kein
+      // GAS-Rueckfall bei Fehlern.
+      if (request.method !== "POST") {
+        return new Response(
+          JSON.stringify({ success: false, error: "Nur POST erlaubt" }),
+          { status: 405, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      let body: any = null;
+      try {
+        body = await request.json();
+      } catch {
+        body = null;
+      }
+
+      const kundenId = String(body?.kundenId ?? "").trim();
+      const teamId = String(body?.teamId ?? "").trim();
+      const passwort = String(body?.passwort ?? "");
+      const titel = String(body?.titel ?? "").trim();
+      const text = String(body?.text ?? "").trim();
+
+      if (!titel || !text) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Titel und Text sind Pflicht" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      const zugang = await pruefeZugang(kundenId, teamId, passwort);
+      if (!zugang) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Zugang verweigert" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      if (zugang.rolle !== "admin") {
+        return new Response(
+          JSON.stringify({ success: false, error: "Keine Berechtigung" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      // kunden_id kommt aus der gefundenen team_zugaenge-Zeile, nicht vom Browser.
+      const beitrag = await createBeitrag({
+        kunden_id: zugang.kunden_id,
+        titel,
+        text,
+        bild_url: String(body?.bildUrl ?? "").trim(),
+        video_url: String(body?.videoUrl ?? "").trim(),
+        kategorie: String(body?.kategorie ?? "").trim() || "News",
+      });
+
+      if (!beitrag) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Speichern fehlgeschlagen" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, beitrag }),
+        { status: 200, headers: RESPONSE_HEADERS }
+      );
+    }
+
     // WICHTIG: cache: "no-store" verhindert, dass Netlify/Deno diese
     // Anfrage an Google selbst zwischenspeichert (Ursache fuer veraltete
     // Beitragslisten nach einer Freigabe im Studio).
@@ -88,6 +158,37 @@ export default async (request: Request, context: Context) => {
           gasUnavailable: true,
         };
         return new Response(JSON.stringify(fallback), { status: 200, headers: RESPONSE_HEADERS });
+      }
+
+      return new Response(
+        JSON.stringify({ success: false, error: "Proxy Fehler" }),
+        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+      );
+    }
+
+    if (action === "get_beitraege") {
+      const kundenId = url.searchParams.get("kundenId") || "";
+      const [gasResult, supabaseBeitraegeResult] = await Promise.allSettled([
+        gasFetchPromise,
+        fetchSupabaseBeitraege(kundenId),
+      ]);
+
+      const supabaseBeitraege =
+        supabaseBeitraegeResult.status === "fulfilled" ? supabaseBeitraegeResult.value : null;
+
+      if (supabaseBeitraege) {
+        // Beitraege kommen jetzt aus Supabase statt aus GAS. rows und
+        // beitraege, weil Tab1/feed.ts beide Schluessel lesen.
+        return new Response(
+          JSON.stringify({ success: true, rows: supabaseBeitraege, beitraege: supabaseBeitraege }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      // Supabase-Fehlerfall: unveraendert auf GAS zurueckfallen.
+      if (gasResult.status === "fulfilled") {
+        const data = await gasResult.value.text();
+        return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
       }
 
       return new Response(
