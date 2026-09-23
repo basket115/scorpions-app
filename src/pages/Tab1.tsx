@@ -247,17 +247,30 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
   const [bildUrl, setBildUrl] = useState(beitrag.Bild_URL || '');
   const [videoUrl, setVideoUrl] = useState(beitrag.Video_URL || beitrag.videoUrl || '');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const handleSave = async () => {
-    setSaving(true); setError('');
+    setSaving(true);
     try {
       const bId = String(beitrag.id || beitrag.Id || '').trim();
-      const params = new URLSearchParams({ action: 'update_beitrag', kundenId, id: bId, titel, text, bildUrl: fixGoogleDriveUrl(bildUrl), videoUrl: fixGoogleDriveUrl(videoUrl) });
-      const res = await fetch(`${API_EXEC_URL}?${params}`);
+      // Speichern nur über Supabase: Zugang (team_id + Kunden-ID + Passwort)
+      // prüft der Proxy serverseitig, Passwort im Body statt in der URL.
+      const res = await fetch(`${API_EXEC_URL}?action=beitragBearbeiten`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kundenId: sessionStorage.getItem('teamKundenId') || kundenId,
+          teamId: sessionStorage.getItem('teamId') || '',
+          passwort: sessionStorage.getItem('teamPasswort') || '',
+          id: bId,
+          titel,
+          text,
+          bildUrl: fixGoogleDriveUrl(bildUrl),
+          videoUrl: fixGoogleDriveUrl(videoUrl)
+        })
+      });
       const data = await res.json();
       if (data.success) { onSaved({ ...beitrag, Titel: titel, Text: text, Bild_URL: bildUrl, Video_URL: videoUrl }); onClose(); }
-      else { setError(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt'))); }
-    } catch { setError(t('error_verbindungsfehler', 'Verbindungsfehler')); } finally { setSaving(false); }
+      else { alert(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt'))); }
+    } catch { alert(t('error_verbindungsfehler', 'Verbindungsfehler')); } finally { setSaving(false); }
   };
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
@@ -278,7 +291,6 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
           <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_video_url', '▶ YouTube URL')}</label>
             <input value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
         </div>
-        {error && <p style={{ color: 'red', margin: '12px 0 0', fontSize: 14 }}>{error}</p>}
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
           <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>

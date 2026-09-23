@@ -120,3 +120,86 @@ export async function createBeitrag(daten: NeuerBeitrag): Promise<SupabaseRow | 
     return null;
   }
 }
+
+export type BeitragAenderung = {
+  titel: string;
+  text: string;
+  bild_url: string;
+  video_url: string;
+};
+
+// Aendert einen bestehenden, nicht geloeschten Beitrag des Kunden. Liest
+// ihn vorher (id + kunden_id + geloescht nicht true) - gibt es ihn nicht,
+// wird "nicht_gefunden" geliefert. Geaendert werden NUR titel, text,
+// bild_url und video_url; kategorie, datum und erstellt_am bleiben
+// unveraendert. Liefert die geaenderte Zeile, bei technischem Fehler null.
+export async function updateBeitrag(
+  id: string,
+  kundenId: string,
+  felder: BeitragAenderung
+): Promise<SupabaseRow | "nicht_gefunden" | null> {
+  if (!id || !kundenId) return "nicht_gefunden";
+
+  const creds = getSecretCredentials();
+  if (!creds) return null;
+
+  // geloescht=not.is.true statt eq.false, damit auch NULL als "nicht
+  // geloescht" gilt - wie im Lesecode (supabaseBeitraege.ts).
+  const filter =
+    `?id=eq.${encodeURIComponent(id)}` +
+    `&kunden_id=eq.${encodeURIComponent(kundenId)}` +
+    `&geloescht=not.is.true`;
+
+  try {
+    const leseResponse = await fetch(
+      `${creds.supabaseUrl}/rest/v1/beitraege${filter}&select=id`,
+      {
+        method: "GET",
+        headers: {
+          apikey: creds.secretKey,
+        },
+        signal: AbortSignal.timeout(4000),
+      }
+    );
+
+    if (!leseResponse.ok) {
+      console.error("[Supabase Schreiben] Unerwarteter Status (updateBeitrag lesen)", leseResponse.status);
+      return null;
+    }
+
+    const vorhanden = (await leseResponse.json()) as SupabaseRow[];
+    if (!Array.isArray(vorhanden)) return null;
+    if (vorhanden.length !== 1) return "nicht_gefunden";
+
+    const response = await fetch(`${creds.supabaseUrl}/rest/v1/beitraege${filter}`, {
+      method: "PATCH",
+      headers: {
+        apikey: creds.secretKey,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        titel: felder.titel,
+        text: felder.text,
+        bild_url: felder.bild_url,
+        video_url: felder.video_url,
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!response.ok) {
+      console.error("[Supabase Schreiben] Unerwarteter Status (updateBeitrag)", response.status, await response.text());
+      return null;
+    }
+
+    const rows = (await response.json()) as SupabaseRow[];
+    if (!Array.isArray(rows)) return null;
+    if (rows.length === 0) return "nicht_gefunden";
+    if (rows.length !== 1) return null;
+
+    return rows[0];
+  } catch (error) {
+    console.error("[Supabase Schreiben] Speichern fehlgeschlagen (updateBeitrag)", error);
+    return null;
+  }
+}
