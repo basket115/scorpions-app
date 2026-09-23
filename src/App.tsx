@@ -88,10 +88,6 @@ const t = (key: string, fallback?: string): string => {
   return languageT(key, fallback);
 };
   const [loading, setLoading] = useState(true);
-  const [password, setPassword] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [error, setError] = useState('');
 
   const [teamRolle, setTeamRolle] = useState<'admin' | 'abtl' | 'team' | null>(null);
   const [teamMannschaft, setTeamMannschaft] = useState('');
@@ -265,16 +261,6 @@ const handleTeamLogin = async () => {
     setTeamLoginDone(false); setShowTeamLogin(true);
   };
 
-  const handleLogin = async () => {
-    try {
-      setError('');
-      const res = await fetch(`${API_EXEC_URL}?kundenId=${encodeURIComponent(kundenId)}&password=${encodeURIComponent(password)}`);
-      const data = await res.json();
-      if (data.success) { setIsAuthenticated(true); setShowLogin(false); setPassword(''); }
-      else { setError(data.error || t('error_falsches_passwort', 'Falsches Passwort!')); }
-    } catch { setError(t('error_login_fehlgeschlagen', 'Login Fehler')); }
-  };
-
   const isReadOnly = String(branding?.ReadOnly || '').toUpperCase() === 'TRUE';
   const showGear = !isReadOnly;
 
@@ -382,14 +368,6 @@ if (loading && !branding) {
           <div style={{ position: 'absolute', top: 16, left: 16 }}>
             <LanguageSwitcher variant="light" />
           </div>
-          {showGear && (
-            <button onClick={() => setShowLogin(true)}
-              style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 10, padding: 10, cursor: 'pointer', color: 'white' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
-              </svg>
-            </button>
-          )}
           <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             {logoUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
               <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -412,35 +390,6 @@ if (loading && !branding) {
     );
   }
 
-  if (showLogin && !isAuthenticated) {
-    return (
-      <IonApp>
-        <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 16, left: 16 }}>
-            <LanguageSwitcher variant="light" />
-          </div>
-          <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            {logoUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-              <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            </div>}
-            <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || t('lbl_admin_login', 'Admin Login')}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('lbl_admin_login', 'Admin Login')}</p>
-            <PasswordInput value={password} onChange={setPassword} onEnter={handleLogin} />
-            {error && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{error}</p>}
-            <button onClick={handleLogin}
-              style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {t('btn_login', 'Einloggen')}
-            </button>
-            <button onClick={() => { setShowLogin(false); setPassword(''); setError(''); }}
-              style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {t('btn_zurueck_zur_app', '← Zurück zur App')}
-            </button>
-          </div>
-        </div>
-      </IonApp>
-    );
-  }
-
   return (
     <BrandingContext.Provider value={{
      t,
@@ -449,7 +398,6 @@ sprache: String(branding?.Sprache || 'de').toLowerCase(),
       bootstrapData,
       loading,
       reload,
-      isAuthenticated,
       teamRolle,
       teamMannschaft,
       teamId,
@@ -466,14 +414,11 @@ sprache: String(branding?.Sprache || 'de').toLowerCase(),
       <IonApp>
         <Tab1
   onAdminClick={
-    showGear
+    // Admin nur noch über den Team-Login; ohne Team-Zugänge kein Admin-Knopf.
+    showGear && hasTeamLogin
       ? () => {
-          if (hasTeamLogin) {
-            setShowTeamLogin(true);
-            setTeamLoginDone(false);
-          } else {
-            setShowLogin(true);
-          }
+          setShowTeamLogin(true);
+          setTeamLoginDone(false);
         }
       : undefined
   }

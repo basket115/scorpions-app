@@ -4,6 +4,7 @@ import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
 import { pruefeZugang, createBeitrag } from "./lib/supabaseBeitraegeSchreiben.ts";
+import { filterBranding } from "./lib/brandingFilter.ts";
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
 
@@ -139,6 +140,10 @@ export default async (request: Request, context: Context) => {
           // bleiben unveraendert aus GAS.
           Object.assign(data.branding, supabaseBranding);
         }
+        if (data.branding) {
+          // Nur erlaubte Felder an den Browser - "Passwort" u. a. fallen weg.
+          data.branding = filterBranding(data.branding);
+        }
         if (supabaseBeitraege) {
           // Beitraege kommen jetzt aus Supabase statt aus GAS. Schlaegt
           // Supabase fehl, bleiben die GAS-Beitraege unveraendert stehen.
@@ -152,7 +157,7 @@ export default async (request: Request, context: Context) => {
         // wenigstens das Branding statt komplett zu scheitern.
         const fallback = {
           success: true,
-          branding: { ...supabaseBranding },
+          branding: filterBranding(supabaseBranding),
           beitraege: supabaseBeitraege ?? [],
           sponsoren: [],
           gasUnavailable: true,
@@ -164,6 +169,32 @@ export default async (request: Request, context: Context) => {
         JSON.stringify({ success: false, error: "Proxy Fehler" }),
         { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
       );
+    }
+
+    if (action === "get_branding") {
+      // GAS-Antwort nie ungefiltert durchreichen: das Branding wird auf
+      // die erlaubten Felder reduziert. Nicht lesbares JSON wird nicht
+      // weitergegeben, weil es geheime Felder enthalten koennte.
+      const response = await gasFetchPromise;
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error("[Proxy] GAS-Antwort nicht als JSON lesbar (get_branding)", parseError);
+        data = null;
+      }
+
+      if (!data) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Proxy Fehler" }),
+          { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+        );
+      }
+
+      if (data.branding) {
+        data.branding = filterBranding(data.branding);
+      }
+      return new Response(JSON.stringify(data), { status: 200, headers: RESPONSE_HEADERS });
     }
 
     if (action === "get_beitraege") {

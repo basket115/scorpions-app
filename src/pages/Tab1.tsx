@@ -373,7 +373,7 @@ function formatBeitragDatum(
 
 const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const { t, lang } = useLanguage();
-  const { branding, bootstrapData, loading, reload, isAuthenticated, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
+  const { branding, bootstrapData, loading, reload, teamRolle, teamMannschaft, handleTeamLogout } = useContext(BrandingContext);
   const [beitraege, setBeitraege] = useState<any[]>([]);
   const [feedState, setFeedState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const feedLoadingRef = useRef(false);
@@ -406,14 +406,13 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     return sponsorDataFromRows(bootstrapSponsors, kundenId);
   }, [bootstrapSponsors, kundenId]);
 
-  const isAdmin = !!b?.Passwort && isAuthenticated;
-  const isTeamAdmin = teamRolle === 'admin';
-  const isAbtl = teamRolle === 'abtl';
+  // Admin nur noch über den Team-Login (team_zugaenge, rolle='admin').
+  const isAdmin = teamRolle === 'admin';
   const isTeam = teamRolle === 'team';
-  const canPost = isAdmin || isTeamAdmin || isAbtl || isTeam;
+  const canPost = isAdmin || isTeam;
 
   const canDelete = (beitrag: any): boolean => {
-    if (isAdmin || isTeamAdmin || isAbtl) return true;
+    if (isAdmin) return true;
     if (isTeam) return String(beitrag.Kategorie || '').trim() === teamMannschaft;
     return false;
   };
