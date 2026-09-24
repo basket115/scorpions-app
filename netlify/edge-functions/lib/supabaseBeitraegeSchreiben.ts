@@ -3,16 +3,12 @@
 // NIE an den Browser weitergegeben werden darf. Vor jedem Schreiben wird
 // der Zugang serverseitig gegen "team_zugaenge" geprueft.
 
+import { getSecretCredentials as getSecretCredentialsMitPrefix } from "./supabaseSecret.ts";
+
 type SupabaseRow = Record<string, unknown>;
 
-function getSecretCredentials(): { supabaseUrl: string; secretKey: string } | null {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const secretKey = Deno.env.get("SUPABASE_SECRET_KEY");
-  if (!supabaseUrl || !secretKey) {
-    console.error("[Supabase Schreiben] SUPABASE_URL/SUPABASE_SECRET_KEY nicht gesetzt");
-    return null;
-  }
-  return { supabaseUrl, secretKey };
+function getSecretCredentials() {
+  return getSecretCredentialsMitPrefix("[Supabase Schreiben]");
 }
 
 export type Zugang = { rolle: string; mannschaft: string; kunden_id: string };
@@ -38,7 +34,7 @@ export async function pruefeZugang(
       `?team_id=eq.${encodeURIComponent(teamId)}` +
       `&kunden_id=eq.${encodeURIComponent(kundenId)}` +
       `&aktiv=eq.true` +
-      `&select=*`;
+      `&select=rolle,mannschaft,kunden_id,passwort`;
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {

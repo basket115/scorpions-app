@@ -1,18 +1,11 @@
-// Team-Login gegen die Supabase-Tabelle "team_zugaenge". Die Tabelle hat
-// eine oeffentliche SELECT-Policy - der Zugriff laeuft wie bei Branding/
-// Beitraege/Sponsoren ueber den oeffentlichen SUPABASE_ANON_KEY.
+// Team-Login gegen die Supabase-Tabelle "team_zugaenge". Die Tabelle ist
+// NICHT oeffentlich lesbar (RLS an, keine oeffentliche SELECT-Policy) - der
+// Zugriff laeuft deshalb nur hier im Proxy ueber den GEHEIMEN
+// SUPABASE_SECRET_KEY, der nie an den Browser geht.
+
+import { getSecretCredentials } from "./supabaseSecret.ts";
 
 type SupabaseTeamRow = Record<string, unknown>;
-
-function getAnonCredentials(): { supabaseUrl: string; anonKey: string } | null {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !anonKey) {
-    console.error("[Supabase Team] SUPABASE_URL/SUPABASE_ANON_KEY nicht gesetzt");
-    return null;
-  }
-  return { supabaseUrl, anonKey };
-}
 
 // Prueft nur, OB es fuer einen Kunden ueberhaupt Team-Zugaenge gibt -
 // liefert nie das Passwort mit. true/false bei erfolgreicher Anfrage,
@@ -23,7 +16,7 @@ export async function fetchSupabaseHasTeamLogin(
 ): Promise<boolean | null> {
   if (!kundenId) return null;
 
-  const creds = getAnonCredentials();
+  const creds = getSecretCredentials("[Supabase Team]");
   if (!creds) return null;
 
   try {
@@ -32,7 +25,7 @@ export async function fetchSupabaseHasTeamLogin(
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
-        apikey: creds.anonKey,
+        apikey: creds.secretKey,
       },
       signal: AbortSignal.timeout(4000),
     });
@@ -69,7 +62,7 @@ export async function fetchSupabaseTeamRole(
 ): Promise<TeamRoleResult | null> {
   if (!kundenId || !password) return null;
 
-  const creds = getAnonCredentials();
+  const creds = getSecretCredentials("[Supabase Team]");
   if (!creds) return null;
 
   try {
@@ -77,11 +70,11 @@ export async function fetchSupabaseTeamRole(
       `${creds.supabaseUrl}/rest/v1/team_zugaenge` +
       `?kunden_id=eq.${encodeURIComponent(kundenId)}` +
       `&aktiv=eq.true` +
-      `&select=*`;
+      `&select=team_id,mannschaft,rolle,passwort`;
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
-        apikey: creds.anonKey,
+        apikey: creds.secretKey,
       },
       signal: AbortSignal.timeout(4000),
     });
@@ -93,6 +86,11 @@ export async function fetchSupabaseTeamRole(
 
     const rows = (await response.json()) as SupabaseTeamRow[];
     if (!Array.isArray(rows)) return null;
+    if (rows.length === 0) {
+      // Kein Fehler, aber auffaellig: fehlender Schluessel/Policy liefert
+      // ebenfalls eine leere Liste statt eines Fehlerstatus.
+      console.warn("[Supabase Team] Keine aktiven Team-Zugaenge gefunden (getTeamRole)", kundenId);
+    }
 
     const treffer = rows.find((row) => String(row.passwort ?? "") === password);
     if (!treffer) return { success: false };

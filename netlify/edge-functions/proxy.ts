@@ -19,6 +19,35 @@ const RESPONSE_HEADERS = {
   "Expires": "0",
 };
 
+// Aktionen, die der Proxy an GAS weiterreichen darf. Enthaelt alle
+// Aktionen, die das Frontend (src/) ueber /api/proxy aufruft und die ganz
+// oder als Rueckfall an GAS gehen. Alles andere wird abgelehnt.
+const GAS_ERLAUBTE_AKTIONEN = new Set([
+  "get_bootstrap",
+  "get_branding",
+  "get_beitraege",
+  "get_sponsors",
+  "checkTeamLogin",
+  "getTeamRole",
+  "update_sponsor",
+]);
+
+// Team-Zugaenge und Passwoerter werden nie ueber den Proxy verwaltet -
+// GAS wuerde hier u. a. Passwoerter im Klartext zurueckgeben.
+const GESPERRTE_AKTIONEN = new Set([
+  "get_team_zugaenge",
+  "add_team_zugang",
+  "remove_team_zugang",
+  "update_passwort",
+]);
+
+function nichtErlaubt(): Response {
+  return new Response(
+    JSON.stringify({ success: false, error: "Aktion nicht erlaubt" }),
+    { status: 403, headers: RESPONSE_HEADERS }
+  );
+}
+
 function jsonAntwort(daten: unknown): Response {
   return new Response(JSON.stringify(daten), { status: 200, headers: RESPONSE_HEADERS });
 }
@@ -110,6 +139,10 @@ export default async (request: Request, context: Context) => {
   const action = url.searchParams.get("action");
 
   try {
+    if (!action || GESPERRTE_AKTIONEN.has(action)) {
+      return nichtErlaubt();
+    }
+
     if (action === "beitragErstellen") {
       // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
       // jeder GAS-Anfrage, damit nichts an GAS geht. Kein
@@ -430,6 +463,11 @@ export default async (request: Request, context: Context) => {
       ]);
 
       if (imSupabase === true && hasTeamLogin !== null) {
+        if (hasTeamLogin === false) {
+          // Kein Fehler, aber auffaellig: fehlender Schluessel/Policy liefert
+          // ebenfalls eine leere Liste statt eines Fehlerstatus.
+          console.warn("[Proxy] Supabase-Kunde ohne Team-Zugaenge (checkTeamLogin)", kundenId);
+        }
         return jsonAntwort({ hasTeamLogin });
       }
 
@@ -453,6 +491,10 @@ export default async (request: Request, context: Context) => {
 
       // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
       return await gasDurchreichen(targetUrl, request.method);
+    }
+
+    if (!GAS_ERLAUBTE_AKTIONEN.has(action)) {
+      return nichtErlaubt();
     }
 
     return await gasDurchreichen(targetUrl, request.method);
