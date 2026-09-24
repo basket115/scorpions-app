@@ -1,5 +1,5 @@
 import type { Context } from "https://edge.netlify.com";
-import { fetchSupabaseBranding } from "./lib/supabaseBranding.ts";
+import { fetchSupabaseBranding, istSupabaseKunde } from "./lib/supabaseBranding.ts";
 import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
@@ -19,6 +19,90 @@ const RESPONSE_HEADERS = {
   "Expires": "0",
 };
 
+function jsonAntwort(daten: unknown): Response {
+  return new Response(JSON.stringify(daten), { status: 200, headers: RESPONSE_HEADERS });
+}
+
+function proxyFehler(): Response {
+  return new Response(
+    JSON.stringify({ success: false, error: "Proxy Fehler" }),
+    { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+  );
+}
+
+// WICHTIG: cache: "no-store" verhindert, dass Netlify/Deno diese
+// Anfrage an Google selbst zwischenspeichert (Ursache fuer veraltete
+// Beitragslisten nach einer Freigabe im Studio).
+function gasAbfragen(targetUrl: string, method: string): Promise<Response> {
+  return fetch(targetUrl, {
+    method,
+    headers: { "User-Agent": "Netlify-Edge-Proxy/1.0" },
+    redirect: "follow",
+    cache: "no-store",
+    signal: AbortSignal.timeout(6000),
+  });
+}
+
+// Reicht die GAS-Antwort unveraendert als Text durch.
+async function gasDurchreichen(targetUrl: string, method: string): Promise<Response> {
+  const response = await gasAbfragen(targetUrl, method);
+  const data = await response.text();
+  return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
+}
+
+// get_bootstrap ueber GAS. Optional vorhandene Supabase-Teile (Branding,
+// Beitraege) werden wie bisher in die GAS-Antwort uebernommen; faellt GAS
+// aus, bekommt die App wenigstens das Supabase-Branding.
+async function bootstrapUeberGas(
+  targetUrl: string,
+  method: string,
+  supabaseBranding: Record<string, unknown> | null,
+  supabaseBeitraege: Record<string, unknown>[] | null
+): Promise<Response> {
+  let data: any = null;
+  try {
+    const response = await gasAbfragen(targetUrl, method);
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error("[Proxy] GAS-Antwort nicht als JSON lesbar", parseError);
+      data = null;
+    }
+  } catch (gasError) {
+    console.error("[Proxy] GAS-Fetch fehlgeschlagen", gasError);
+  }
+
+  if (data) {
+    if (supabaseBranding && data.branding) {
+      // Nur die aus Supabase uebersetzten Felder ueberschreiben - alle
+      // anderen Branding-Felder bleiben unveraendert aus GAS.
+      Object.assign(data.branding, supabaseBranding);
+    }
+    if (data.branding) {
+      // Nur erlaubte Felder an den Browser - "Passwort" u. a. fallen weg.
+      data.branding = filterBranding(data.branding);
+    }
+    if (supabaseBeitraege) {
+      data.beitraege = supabaseBeitraege;
+    }
+    return jsonAntwort(data);
+  }
+
+  if (supabaseBranding) {
+    // GAS nicht verfuegbar, aber Supabase-Branding da: App bekommt
+    // wenigstens das Branding statt komplett zu scheitern.
+    return jsonAntwort({
+      success: true,
+      branding: filterBranding(supabaseBranding),
+      beitraege: supabaseBeitraege ?? [],
+      sponsoren: [],
+      gasUnavailable: true,
+    });
+  }
+
+  return proxyFehler();
+}
+
 export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
   const params = url.searchParams.toString();
@@ -28,7 +112,7 @@ export default async (request: Request, context: Context) => {
   try {
     if (action === "beitragErstellen") {
       // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
-      // dem Start von gasFetchPromise, damit nichts an GAS geht. Kein
+      // jeder GAS-Anfrage, damit nichts an GAS geht. Kein
       // GAS-Rueckfall bei Fehlern.
       if (request.method !== "POST") {
         return new Response(
@@ -97,7 +181,7 @@ export default async (request: Request, context: Context) => {
 
     if (action === "beitragBearbeiten") {
       // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
-      // dem Start von gasFetchPromise, damit nichts an GAS geht. Kein
+      // jeder GAS-Anfrage, damit nichts an GAS geht. Kein
       // GAS-Rueckfall bei Fehlern.
       if (request.method !== "POST") {
         return new Response(
@@ -179,7 +263,7 @@ export default async (request: Request, context: Context) => {
 
     if (action === "beitragLoeschen") {
       // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
-      // dem Start von gasFetchPromise, damit nichts an GAS geht. Kein
+      // jeder GAS-Anfrage, damit nichts an GAS geht. Kein
       // GAS-Rueckfall bei Fehlern. Geloescht wird nur als Markierung.
       if (request.method !== "POST") {
         return new Response(
@@ -245,87 +329,52 @@ export default async (request: Request, context: Context) => {
       );
     }
 
-    // WICHTIG: cache: "no-store" verhindert, dass Netlify/Deno diese
-    // Anfrage an Google selbst zwischenspeichert (Ursache fuer veraltete
-    // Beitragslisten nach einer Freigabe im Studio).
-    const gasFetchPromise = fetch(targetUrl, {
-      method: request.method,
-      headers: { "User-Agent": "Netlify-Edge-Proxy/1.0" },
-      redirect: "follow",
-      cache: "no-store",
-      signal: AbortSignal.timeout(6000),
-    });
+    // Leseaktionen: Fuer Kunden, die in Supabase gefuehrt werden
+    // (istSupabaseKunde === true), antwortet der Proxy nur aus Supabase und
+    // wartet nicht auf GAS. Alle anderen Kunden laufen wie bisher ueber GAS.
+    // GAS wird nur noch dort angefragt, wo es gebraucht wird - nie parallel
+    // "auf Vorrat".
 
     if (action === "get_bootstrap") {
       const kundenId = url.searchParams.get("kundenId") || "";
-      // GAS-Antwort (beitraege/sponsors) und Supabase-Branding parallel
-      // holen, damit sich die Ladezeit gegenueber vorher nicht verlangsamt.
-      // allSettled statt all: ein haengendes/fehlerhaftes GAS darf das
-      // bereits vorliegende Supabase-Branding nicht mit sich reissen.
-      const [gasResult, supabaseResult, supabaseBeitraegeResult] = await Promise.allSettled([
-        gasFetchPromise,
+      const [imSupabase, supabaseBranding, supabaseBeitraege, supabaseSponsoren] = await Promise.all([
+        istSupabaseKunde(kundenId),
         fetchSupabaseBranding(kundenId),
         fetchSupabaseBeitraege(kundenId),
+        fetchSupabaseSponsoren(kundenId),
       ]);
 
-      const supabaseBranding = supabaseResult.status === "fulfilled" ? supabaseResult.value : null;
-      const supabaseBeitraege = supabaseBeitraegeResult.status === "fulfilled" ? supabaseBeitraegeResult.value : null;
-
-      let data: any = null;
-      if (gasResult.status === "fulfilled") {
-        try {
-          data = await gasResult.value.json();
-        } catch (parseError) {
-          console.error("[Proxy] GAS-Antwort nicht als JSON lesbar", parseError);
-          data = null;
-        }
-      } else {
-        console.error("[Proxy] GAS-Fetch fehlgeschlagen", gasResult.reason);
-      }
-
-      if (data) {
-        if (supabaseBranding && data.branding) {
-          // Nur die aus Supabase uebersetzten Felder ueberschreiben - alle
-          // anderen Branding-Felder (Passwort, Social-URLs, Demo_Ende, ...)
-          // bleiben unveraendert aus GAS.
-          Object.assign(data.branding, supabaseBranding);
-        }
-        if (data.branding) {
-          // Nur erlaubte Felder an den Browser - "Passwort" u. a. fallen weg.
-          data.branding = filterBranding(data.branding);
-        }
-        if (supabaseBeitraege) {
-          // Beitraege kommen jetzt aus Supabase statt aus GAS. Schlaegt
-          // Supabase fehl, bleiben die GAS-Beitraege unveraendert stehen.
-          data.beitraege = supabaseBeitraege;
-        }
-        return new Response(JSON.stringify(data), { status: 200, headers: RESPONSE_HEADERS });
-      }
-
-      if (supabaseBranding) {
-        // GAS nicht verfuegbar, aber Supabase-Branding da: App bekommt
-        // wenigstens das Branding statt komplett zu scheitern.
-        const fallback = {
+      if (imSupabase === true && supabaseBranding && supabaseBeitraege && supabaseSponsoren) {
+        // settings, teams, studioSponsor und meta liest die App nicht -
+        // deshalb kein Warten auf GAS.
+        return jsonAntwort({
           success: true,
+          kundenId,
           branding: filterBranding(supabaseBranding),
-          beitraege: supabaseBeitraege ?? [],
-          sponsoren: [],
-          gasUnavailable: true,
-        };
-        return new Response(JSON.stringify(fallback), { status: 200, headers: RESPONSE_HEADERS });
+          beitraege: supabaseBeitraege,
+          sponsors: supabaseSponsoren,
+        });
       }
 
-      return new Response(
-        JSON.stringify({ success: false, error: "Proxy Fehler" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
-      );
+      if (imSupabase === false) {
+        // Kein Supabase-Kunde: unveraendert ueber GAS.
+        return await bootstrapUeberGas(targetUrl, request.method, null, null);
+      }
+
+      // Technischer Fehler bei Supabase: bisheriger Weg (GAS + die
+      // Supabase-Teile, die geantwortet haben). Beitraege nur uebernehmen,
+      // wenn es welche gibt - eine leere Liste darf die GAS-Beitraege
+      // nicht verdraengen, solange unklar ist, ob der Kunde in Supabase ist.
+      const beitraegeFuerMerge =
+        imSupabase === true || (supabaseBeitraege && supabaseBeitraege.length) ? supabaseBeitraege : null;
+      return await bootstrapUeberGas(targetUrl, request.method, supabaseBranding, beitraegeFuerMerge);
     }
 
     if (action === "get_branding") {
       // GAS-Antwort nie ungefiltert durchreichen: das Branding wird auf
       // die erlaubten Felder reduziert. Nicht lesbares JSON wird nicht
       // weitergegeben, weil es geheime Felder enthalten koennte.
-      const response = await gasFetchPromise;
+      const response = await gasAbfragen(targetUrl, request.method);
       let data: any = null;
       try {
         data = await response.json();
@@ -334,143 +383,79 @@ export default async (request: Request, context: Context) => {
         data = null;
       }
 
-      if (!data) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Proxy Fehler" }),
-          { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
-        );
-      }
+      if (!data) return proxyFehler();
 
       if (data.branding) {
         data.branding = filterBranding(data.branding);
       }
-      return new Response(JSON.stringify(data), { status: 200, headers: RESPONSE_HEADERS });
+      return jsonAntwort(data);
     }
 
     if (action === "get_beitraege") {
       const kundenId = url.searchParams.get("kundenId") || "";
-      const [gasResult, supabaseBeitraegeResult] = await Promise.allSettled([
-        gasFetchPromise,
+      const [imSupabase, supabaseBeitraege] = await Promise.all([
+        istSupabaseKunde(kundenId),
         fetchSupabaseBeitraege(kundenId),
       ]);
 
-      const supabaseBeitraege =
-        supabaseBeitraegeResult.status === "fulfilled" ? supabaseBeitraegeResult.value : null;
-
-      if (supabaseBeitraege) {
-        // Beitraege kommen jetzt aus Supabase statt aus GAS. rows und
-        // beitraege, weil Tab1/feed.ts beide Schluessel lesen.
-        return new Response(
-          JSON.stringify({ success: true, rows: supabaseBeitraege, beitraege: supabaseBeitraege }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
+      if (imSupabase === true && supabaseBeitraege) {
+        // rows und beitraege, weil Tab1/feed.ts beide Schluessel lesen.
+        return jsonAntwort({ success: true, rows: supabaseBeitraege, beitraege: supabaseBeitraege });
       }
 
-      // Supabase-Fehlerfall: unveraendert auf GAS zurueckfallen.
-      if (gasResult.status === "fulfilled") {
-        const data = await gasResult.value.text();
-        return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
-      }
-
-      return new Response(
-        JSON.stringify({ success: false, error: "Proxy Fehler" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
-      );
+      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
+      return await gasDurchreichen(targetUrl, request.method);
     }
 
     if (action === "get_sponsors") {
       const kundenId = url.searchParams.get("kundenId") || "";
-      const [gasResult, supabaseSponsorenResult] = await Promise.allSettled([
-        gasFetchPromise,
+      const [imSupabase, supabaseSponsoren] = await Promise.all([
+        istSupabaseKunde(kundenId),
         fetchSupabaseSponsoren(kundenId),
       ]);
 
-      const supabaseSponsoren =
-        supabaseSponsorenResult.status === "fulfilled" ? supabaseSponsorenResult.value : null;
-
-      if (supabaseSponsoren) {
-        // Sponsoren kommen jetzt aus Supabase statt aus GAS.
-        return new Response(
-          JSON.stringify({ success: true, sponsors: supabaseSponsoren }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
+      if (imSupabase === true && supabaseSponsoren) {
+        return jsonAntwort({ success: true, sponsors: supabaseSponsoren });
       }
 
-      // Supabase-Fehlerfall: unveraendert auf GAS zurueckfallen.
-      if (gasResult.status === "fulfilled") {
-        const data = await gasResult.value.text();
-        return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
-      }
-
-      return new Response(
-        JSON.stringify({ success: false, error: "Proxy Fehler" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
-      );
+      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
+      return await gasDurchreichen(targetUrl, request.method);
     }
 
     if (action === "checkTeamLogin") {
       const kundenId = url.searchParams.get("kundenId") || "";
-      const [gasResult, hasTeamLoginResult] = await Promise.allSettled([
-        gasFetchPromise,
+      const [imSupabase, hasTeamLogin] = await Promise.all([
+        istSupabaseKunde(kundenId),
         fetchSupabaseHasTeamLogin(kundenId),
       ]);
 
-      const hasTeamLogin =
-        hasTeamLoginResult.status === "fulfilled" ? hasTeamLoginResult.value : null;
-
-      if (hasTeamLogin !== null) {
-        return new Response(
-          JSON.stringify({ hasTeamLogin }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
+      if (imSupabase === true && hasTeamLogin !== null) {
+        return jsonAntwort({ hasTeamLogin });
       }
 
-      // Supabase-Fehlerfall: unveraendert auf GAS zurueckfallen.
-      if (gasResult.status === "fulfilled") {
-        const data = await gasResult.value.text();
-        return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
-      }
-
-      return new Response(
-        JSON.stringify({ success: false, error: "Proxy Fehler" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
-      );
+      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
+      return await gasDurchreichen(targetUrl, request.method);
     }
 
     if (action === "getTeamRole") {
       const kundenId = url.searchParams.get("kundenId") || "";
       const password = url.searchParams.get("password") || "";
-      const [gasResult, teamRoleResult] = await Promise.allSettled([
-        gasFetchPromise,
+      const [imSupabase, teamRole] = await Promise.all([
+        istSupabaseKunde(kundenId),
         fetchSupabaseTeamRole(kundenId, password),
       ]);
 
-      const teamRole = teamRoleResult.status === "fulfilled" ? teamRoleResult.value : null;
-
-      if (teamRole !== null) {
+      if (imSupabase === true && teamRole !== null) {
         // Sowohl Treffer als auch "falsches Passwort" sind definitive
-        // Antworten aus Supabase - kein GAS-Fallback in beiden Faellen.
-        return new Response(
-          JSON.stringify(teamRole),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
+        // Antworten aus Supabase - kein GAS-Rueckfall in beiden Faellen.
+        return jsonAntwort(teamRole);
       }
 
-      // Supabase-Fehlerfall: unveraendert auf GAS zurueckfallen.
-      if (gasResult.status === "fulfilled") {
-        const data = await gasResult.value.text();
-        return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
-      }
-
-      return new Response(
-        JSON.stringify({ success: false, error: "Proxy Fehler" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
-      );
+      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
+      return await gasDurchreichen(targetUrl, request.method);
     }
 
-    const response = await gasFetchPromise;
-    const data = await response.text();
-    return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
+    return await gasDurchreichen(targetUrl, request.method);
   } catch (error) {
     return new Response(
       JSON.stringify({ success: false, error: "Proxy Fehler" }),

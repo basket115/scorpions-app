@@ -47,9 +47,10 @@ function parseSortKey(value: unknown): number {
 }
 
 // Liest per read-only-Key (SUPABASE_ANON_KEY) die Beitraege fuer einen Kunden.
-// Wirft nie - jeder Fehler (fehlende Env-Vars, Netzwerk, Timeout, leeres
-// Ergebnis) liefert null, damit der aufrufende Proxy immer auf die
-// GAS-Beitraege zurueckfallen kann.
+// Wirft nie. Keine Beitraege -> [] (ob der Kunde ueberhaupt in Supabase
+// ist, entscheidet der Proxy per istSupabaseKunde). null nur bei
+// technischem Fehler (fehlende Env-Vars, Netzwerk, Timeout), damit der
+// Proxy dann auf die GAS-Beitraege zurueckfallen kann.
 export async function fetchSupabaseBeitraege(
   kundenId: string
 ): Promise<Record<string, unknown>[] | null> {
@@ -99,7 +100,7 @@ export async function fetchSupabaseBeitraege(
       .sort((a, b) => b.sortKey - a.sortKey)
       .map((entry) => entry.beitrag);
 
-    return beitraege.length ? beitraege : null;
+    return beitraege;
   } catch (error) {
     console.error("[Supabase Beitraege] Laden fehlgeschlagen", error);
     return null;
