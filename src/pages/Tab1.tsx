@@ -606,7 +606,18 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     if (!window.confirm(`"${beitrag.Titel}" wirklich löschen?`)) return;
     setDeletingId(beitragId);
     try {
-      const res = await fetch(`${API_EXEC_URL}?action=delete_beitrag&kundenId=${encodeURIComponent(branding?.Kunden_ID || '')}&id=${encodeURIComponent(beitragId)}`, { method: 'GET', redirect: 'follow' }).then(r => r.json());
+      // Löschen nur über Supabase (nur Markierung geloescht=true): Zugang
+      // prüft der Proxy serverseitig, Passwort im Body statt in der URL.
+      const res = await fetch(`${API_EXEC_URL}?action=beitragLoeschen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kundenId: sessionStorage.getItem('teamKundenId') || branding?.Kunden_ID || '',
+          teamId: sessionStorage.getItem('teamId') || '',
+          passwort: sessionStorage.getItem('teamPasswort') || '',
+          id: beitragId
+        })
+      }).then(r => r.json());
       if (res.success) { setBeitraege(prev => prev.filter(item => String(item.id || item.Id || '') !== beitragId)); }
       else { alert(t('status_fehler', 'Fehler: ') + (res.error || t('error_unbekannt', 'Unbekannt'))); }
     } catch { alert(t('error_verbindungsfehler', 'Verbindungsfehler.')); } finally { setDeletingId(null); }

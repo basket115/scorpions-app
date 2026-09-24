@@ -3,7 +3,7 @@ import { fetchSupabaseBranding } from "./lib/supabaseBranding.ts";
 import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
-import { pruefeZugang, createBeitrag, updateBeitrag } from "./lib/supabaseBeitraegeSchreiben.ts";
+import { pruefeZugang, createBeitrag, updateBeitrag, deleteBeitrag } from "./lib/supabaseBeitraegeSchreiben.ts";
 import { filterBranding } from "./lib/brandingFilter.ts";
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
@@ -173,6 +173,74 @@ export default async (request: Request, context: Context) => {
 
       return new Response(
         JSON.stringify({ success: true, beitrag }),
+        { status: 200, headers: RESPONSE_HEADERS }
+      );
+    }
+
+    if (action === "beitragLoeschen") {
+      // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
+      // dem Start von gasFetchPromise, damit nichts an GAS geht. Kein
+      // GAS-Rueckfall bei Fehlern. Geloescht wird nur als Markierung.
+      if (request.method !== "POST") {
+        return new Response(
+          JSON.stringify({ success: false, error: "Nur POST erlaubt" }),
+          { status: 405, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      let body: any = null;
+      try {
+        body = await request.json();
+      } catch {
+        body = null;
+      }
+
+      const kundenId = String(body?.kundenId ?? "").trim();
+      const teamId = String(body?.teamId ?? "").trim();
+      const passwort = String(body?.passwort ?? "");
+      const id = String(body?.id ?? "").trim();
+
+      if (!id) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Keine ID" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      const zugang = await pruefeZugang(kundenId, teamId, passwort);
+      if (!zugang) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Zugang verweigert" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      if (zugang.rolle !== "admin") {
+        return new Response(
+          JSON.stringify({ success: false, error: "Keine Berechtigung" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      // kunden_id kommt aus der gefundenen team_zugaenge-Zeile, nicht vom Browser.
+      const beitrag = await deleteBeitrag(id, zugang.kunden_id);
+
+      if (beitrag === "nicht_gefunden") {
+        return new Response(
+          JSON.stringify({ success: false, error: "Beitrag nicht gefunden" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      if (!beitrag) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Löschen fehlgeschlagen" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
         { status: 200, headers: RESPONSE_HEADERS }
       );
     }

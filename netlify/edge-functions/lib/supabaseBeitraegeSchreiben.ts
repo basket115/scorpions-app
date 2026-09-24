@@ -203,3 +203,75 @@ export async function updateBeitrag(
     return null;
   }
 }
+
+// Loescht einen bestehenden, nicht geloeschten Beitrag des Kunden - aber
+// NUR als Markierung (geloescht=true), die Zeile bleibt erhalten. Liest
+// ihn vorher (id + kunden_id + geloescht nicht true) - gibt es ihn nicht,
+// wird "nicht_gefunden" geliefert. Liefert die markierte Zeile, bei
+// technischem Fehler null.
+export async function deleteBeitrag(
+  id: string,
+  kundenId: string
+): Promise<SupabaseRow | "nicht_gefunden" | null> {
+  if (!id || !kundenId) return "nicht_gefunden";
+
+  const creds = getSecretCredentials();
+  if (!creds) return null;
+
+  // geloescht=not.is.true statt eq.false, damit auch NULL als "nicht
+  // geloescht" gilt - wie im Lesecode (supabaseBeitraege.ts).
+  const filter =
+    `?id=eq.${encodeURIComponent(id)}` +
+    `&kunden_id=eq.${encodeURIComponent(kundenId)}` +
+    `&geloescht=not.is.true`;
+
+  try {
+    const leseResponse = await fetch(
+      `${creds.supabaseUrl}/rest/v1/beitraege${filter}&select=id`,
+      {
+        method: "GET",
+        headers: {
+          apikey: creds.secretKey,
+        },
+        signal: AbortSignal.timeout(4000),
+      }
+    );
+
+    if (!leseResponse.ok) {
+      console.error("[Supabase Schreiben] Unerwarteter Status (deleteBeitrag lesen)", leseResponse.status);
+      return null;
+    }
+
+    const vorhanden = (await leseResponse.json()) as SupabaseRow[];
+    if (!Array.isArray(vorhanden)) return null;
+    if (vorhanden.length !== 1) return "nicht_gefunden";
+
+    const response = await fetch(`${creds.supabaseUrl}/rest/v1/beitraege${filter}`, {
+      method: "PATCH",
+      headers: {
+        apikey: creds.secretKey,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        geloescht: true,
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!response.ok) {
+      console.error("[Supabase Schreiben] Unerwarteter Status (deleteBeitrag)", response.status, await response.text());
+      return null;
+    }
+
+    const rows = (await response.json()) as SupabaseRow[];
+    if (!Array.isArray(rows)) return null;
+    if (rows.length === 0) return "nicht_gefunden";
+    if (rows.length !== 1) return null;
+
+    return rows[0];
+  } catch (error) {
+    console.error("[Supabase Schreiben] Loeschen fehlgeschlagen (deleteBeitrag)", error);
+    return null;
+  }
+}
