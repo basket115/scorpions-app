@@ -117,12 +117,16 @@ const t = (key: string, fallback?: string): string => {
     setUebersetzungen({});
 
     const vereinName = brandingData?.Verein_Name || 'Sport App';
+    // Kurzname (Supabase short_name) fuer Stellen mit wenig Platz, sonst voller Name.
+    const kurzName = brandingData?.Short_Name || vereinName;
     const themaFarbe = brandingData?.Thema_Farbe || '#111111';
     const logoUrl = brandingData?.Logo_Verein || brandingData?.Logo_verein || '';
+    // iPhone-Startbildschirm: eigenes quadratisches App-Icon, sonst Vereinslogo.
+    const appIconUrl = brandingData?.App_Icon_192 || brandingData?.App_Icon_512 || logoUrl;
     document.title = vereinName;
 
     const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-    if (appleMeta) appleMeta.setAttribute('content', vereinName);
+    if (appleMeta) appleMeta.setAttribute('content', kurzName);
 
     let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
     if (themeColorMeta) {
@@ -136,9 +140,11 @@ const t = (key: string, fallback?: string): string => {
 
     if (logoUrl) {
       const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-      const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
       if (favicon) favicon.href = logoUrl;
-      if (appleFavicon) appleFavicon.href = logoUrl;
+    }
+    if (appIconUrl) {
+      const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+      if (appleFavicon) appleFavicon.href = appIconUrl;
     }
   };
 

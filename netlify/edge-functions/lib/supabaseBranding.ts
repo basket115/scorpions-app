@@ -20,6 +20,10 @@ const FIELD_MAP: Record<string, string> = {
   youtube_url: "Youtube_URL",
   tiktok_url: "TikTok_URL",
   whatsapp_url: "WhatsApp_URL",
+  // Nur in Supabase, nicht in GAS: Kurzname und eigene App-Icons.
+  short_name: "Short_Name",
+  app_icon_192: "App_Icon_192",
+  app_icon_512: "App_Icon_512",
 };
 
 type SupabaseKundenRow = Record<string, unknown>;

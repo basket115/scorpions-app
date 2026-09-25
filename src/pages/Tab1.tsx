@@ -641,7 +641,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
       {showSponsorForm && <SponsorPopup kundenId={kundenId} themaFarbe={themaFarbe} onClose={() => setShowSponsorForm(false)} />}
       {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} kundenId={kundenId} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
 
-      <AppHeader title={b?.Verein_Name || 'Sport App'} logoUrl={logoUrl} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
+      <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, backgroundColor: '#f0f0f0' }}>
         {teamRolle && (
