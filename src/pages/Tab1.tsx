@@ -12,9 +12,17 @@ const API_EXEC_URL =
 
 function getYouTubeEmbedUrl(url: string): string | null {
   if (!url) return null;
-  const m = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+  const m = url.match(/(?:youtube(?:-nocookie)?\.com\/(?:(?:watch|attribution_link)?\?(?:.*&)?v=|(?:embed|shorts|live|v|e)\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null;
 }
+
+// Warnt im Formular, wenn ein Video-Link eingetragen ist, den die Anzeige
+// nicht als YouTube-Video erkennt (sonst bleibt der Beitrag ohne Video).
+const YouTubeHinweis: React.FC<{ url: string }> = ({ url }) => {
+  const { t } = useLanguage();
+  if (!url.trim() || getYouTubeEmbedUrl(url)) return null;
+  return <div style={{ marginTop: 4, marginBottom: 8, fontSize: 13, color: '#c0392b' }}>{t('hinweis_youtube_nicht_erkannt', '⚠️ YouTube-Link nicht erkannt')}</div>;
+};
 
 function optimizeImageUrl(url: string): string {
   if (!url) return url;
@@ -240,12 +248,16 @@ const SponsorPopup: React.FC<{ kundenId: string; themaFarbe: string; onClose: ()
   );
 };
 
-const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; onClose: () => void; onSaved: (updated: any) => void }> = ({ beitrag, themaFarbe, kundenId, onClose, onSaved }) => {
+const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; kategorien: string[]; onClose: () => void; onSaved: (updated: any) => void }> = ({ beitrag, themaFarbe, kundenId, kategorien, onClose, onSaved }) => {
   const { t } = useLanguage();
   const [titel, setTitel] = useState(beitrag.Titel || '');
   const [text, setText] = useState(beitrag.Text || '');
   const [bildUrl, setBildUrl] = useState(beitrag.Bild_URL || '');
   const [videoUrl, setVideoUrl] = useState(beitrag.Video_URL || beitrag.videoUrl || '');
+  const [kategorie, setKategorie] = useState(String(beitrag.Kategorie || '').trim());
+  // Aktuelle Kategorie immer anbieten, auch wenn sie nicht (mehr) in der
+  // Liste steht - sonst würde sie beim Speichern stillschweigend geändert.
+  const kategorieOptionen = kategorie && !kategorien.includes(kategorie) ? [kategorie, ...kategorien] : kategorien;
   const [saving, setSaving] = useState(false);
   const handleSave = async () => {
     setSaving(true);
@@ -264,11 +276,12 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
           titel,
           text,
           bildUrl: fixGoogleDriveUrl(bildUrl),
-          videoUrl: fixGoogleDriveUrl(videoUrl)
+          videoUrl: fixGoogleDriveUrl(videoUrl),
+          kategorie
         })
       });
       const data = await res.json();
-      if (data.success) { onSaved({ ...beitrag, Titel: titel, Text: text, Bild_URL: bildUrl, Video_URL: videoUrl }); onClose(); }
+      if (data.success) { onSaved({ ...beitrag, Titel: titel, Text: text, Bild_URL: bildUrl, Video_URL: videoUrl, Kategorie: kategorie || beitrag.Kategorie }); onClose(); }
       else { alert(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt'))); }
     } catch { alert(t('error_verbindungsfehler', 'Verbindungsfehler')); } finally { setSaving(false); }
   };
@@ -289,7 +302,15 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
             <BildUploadButton onUploaded={(url) => setBildUrl(url)} themaFarbe={themaFarbe} />
             {bildUrl && <img src={optimizeImageUrl(bildUrl)} alt={t('lbl_vorschau', 'Vorschau')} style={{ marginTop: 8, width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee' }} />}</div>
           <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_video_url', '▶ YouTube URL')}</label>
-            <input value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
+            <input value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} />
+            <YouTubeHinweis url={videoUrl} /></div>
+          {kategorieOptionen.length > 0 && (
+            <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_kategorie_auswahl', 'Kategorie')}</label>
+              <select value={kategorie} onChange={(e: any) => setKategorie(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, color: '#111' }}>
+                {!kategorie && <option value="">—</option>}
+                {kategorieOptionen.map(k => <option key={k} value={k}>{translateKategorie(k, t)}</option>)}
+              </select></div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
@@ -639,7 +660,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {showBildInfo && <InfoPopup onClose={() => setShowBildInfo(false)} themaFarbe={themaFarbe} />}
       {showSponsorForm && <SponsorPopup kundenId={kundenId} themaFarbe={themaFarbe} onClose={() => setShowSponsorForm(false)} />}
-      {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} kundenId={kundenId} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
+      {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} kundenId={kundenId} kategorien={kategorienFinal} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
 
       <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
 
@@ -698,6 +719,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             </div>
             <BildUploadButton onUploaded={(url) => setBildUrl(url)} themaFarbe={themaFarbe} />
             <input placeholder={t('lbl_video_url_optional', '▶ YouTube URL (optional)')} value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
+            <YouTubeHinweis url={videoUrl} />
             {isTeam && teamMannschaft ? (
               <div style={{ padding: '10px 12px', marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', background: '#f0f0f0', color: '#555', fontSize: 14 }}>{t('lbl_kategorie', 'Kategorie: ')}<strong>{translateKategorie(teamMannschaft, t)}</strong></div>
             ) : (

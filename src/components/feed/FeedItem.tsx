@@ -35,7 +35,7 @@ async function loadSponsor(): Promise<SponsorData | null> {
 
 function getYouTubeEmbedUrl(url?: string): string | null {
   if (!url) return null;
-  const m = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/);
+  const m = url.match(/(?:youtube(?:-nocookie)?\.com\/(?:(?:watch|attribution_link)?\?(?:.*&)?v=|(?:embed|shorts|live|v|e)\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null;
 }
 

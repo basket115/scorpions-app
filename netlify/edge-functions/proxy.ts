@@ -272,6 +272,7 @@ export default async (request: Request, context: Context) => {
         text,
         bild_url: String(body?.bildUrl ?? "").trim(),
         video_url: String(body?.videoUrl ?? "").trim(),
+        kategorie: String(body?.kategorie ?? "").trim(),
       });
 
       if (beitrag === "nicht_gefunden") {

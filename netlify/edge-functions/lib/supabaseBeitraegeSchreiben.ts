@@ -122,13 +122,16 @@ export type BeitragAenderung = {
   text: string;
   bild_url: string;
   video_url: string;
+  // Leer = Kategorie bleibt unveraendert.
+  kategorie: string;
 };
 
 // Aendert einen bestehenden, nicht geloeschten Beitrag des Kunden. Liest
 // ihn vorher (id + kunden_id + geloescht nicht true) - gibt es ihn nicht,
 // wird "nicht_gefunden" geliefert. Geaendert werden NUR titel, text,
-// bild_url und video_url; kategorie, datum und erstellt_am bleiben
-// unveraendert. Liefert die geaenderte Zeile, bei technischem Fehler null.
+// bild_url, video_url und (wenn angegeben) kategorie; datum und
+// erstellt_am bleiben unveraendert. Liefert die geaenderte Zeile, bei
+// technischem Fehler null.
 export async function updateBeitrag(
   id: string,
   kundenId: string,
@@ -179,6 +182,7 @@ export async function updateBeitrag(
         text: felder.text,
         bild_url: felder.bild_url,
         video_url: felder.video_url,
+        ...(felder.kategorie ? { kategorie: felder.kategorie } : {}),
       }),
       signal: AbortSignal.timeout(6000),
     });
