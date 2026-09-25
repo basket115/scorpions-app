@@ -272,6 +272,9 @@ const handleTeamLogin = async () => {
 
   const themaFarbe = branding?.Thema_Farbe || '#111111';
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
+  // Anmeldebildschirm: eigenes quadratisches App-Icon (512 fuer hohe
+  // Pixeldichte), sonst Vereinslogo.
+  const loginBildUrl = branding?.App_Icon_512 || branding?.App_Icon_192 || logoUrl;
 
 if (!resolvedKunde) {
   const l = (
@@ -375,8 +378,8 @@ if (loading && !branding) {
             <LanguageSwitcher variant="light" />
           </div>
           <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            {logoUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-              <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            {loginBildUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+              <img src={loginBildUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>}
             <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Sport App'}</h2>
             <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('hinweis_team_login', 'Bitte mit deinem Team-Passwort einloggen')}</p>
