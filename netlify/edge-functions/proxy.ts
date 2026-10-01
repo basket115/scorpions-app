@@ -36,16 +36,18 @@ const GAS_ERLAUBTE_AKTIONEN = new Set([
   "get_sponsors",
   "checkTeamLogin",
   "getTeamRole",
-  "update_sponsor",
 ]);
 
 // Team-Zugaenge und Passwoerter werden nie ueber den Proxy verwaltet -
-// GAS wuerde hier u. a. Passwoerter im Klartext zurueckgeben.
+// GAS wuerde hier u. a. Passwoerter im Klartext zurueckgeben. Sponsoren
+// werden nur im Admin-Panel gepflegt (Supabase) - update_sponsor wuerde
+// ohne Anmeldung ins GAS-Sheet schreiben.
 const GESPERRTE_AKTIONEN = new Set([
   "get_team_zugaenge",
   "add_team_zugang",
   "remove_team_zugang",
   "update_passwort",
+  "update_sponsor",
 ]);
 
 function nichtErlaubt(): Response {

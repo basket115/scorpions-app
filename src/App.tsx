@@ -89,7 +89,7 @@ const t = (key: string, fallback?: string): string => {
 };
   const [loading, setLoading] = useState(true);
 
-  const [teamRolle, setTeamRolle] = useState<'admin' | 'abtl' | 'team' | null>(null);
+  const [teamRolle, setTeamRolle] = useState<'admin' | 'team' | null>(null);
   const [teamMannschaft, setTeamMannschaft] = useState('');
   const [teamId, setTeamId] = useState('');
   const [showTeamLogin, setShowTeamLogin] = useState(false);
@@ -186,7 +186,9 @@ const osAppId = '';
 
   useEffect(() => {
     if (!kundenId) { setHasTeamLogin(false); return; }
-    const savedRolle = sessionStorage.getItem('teamRolle') as 'admin' | 'abtl' | 'team' | null;
+    // Nur die Rollen annehmen, die es gibt - jeder andere gespeicherte Wert gilt als nicht angemeldet.
+    const gespeichert = sessionStorage.getItem('teamRolle');
+    const savedRolle = gespeichert === 'admin' || gespeichert === 'team' ? gespeichert : null;
     const savedKundenId = sessionStorage.getItem('teamKundenId') || '';
     if (savedRolle && savedKundenId === kundenId) {
       setTeamRolle(savedRolle);

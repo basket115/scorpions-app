@@ -119,11 +119,6 @@ async function getSponsoren(kundenId: string): Promise<SponsorData[]> {
   return p;
 }
 
-// Fuer das Formular "Sponsor einrichten": weiterhin nur der erste Sponsor.
-async function getSponsor(kundenId: string): Promise<SponsorData | null> {
-  return (await getSponsoren(kundenId))[0] ?? null;
-}
-
 // Einziger Standard-Sponsor: wird gezeigt, wenn ein Kunde keinen aktiven
 // Sponsor hat. Der Text kommt in der App-Sprache aus translations.ts.
 const DEFAULT_SPONSOR_LOGO = 'https://res.cloudinary.com/dhn90jugp/image/upload/v1790830639/ONLANG_Logo_f%C3%BCr_Instagram_am_03.07.2026_ziydyy.png';
@@ -257,53 +252,6 @@ const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onCl
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
         </div>
         <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>{t('btn_verstanden', 'Verstanden ✓')}</button>
-      </div>
-    </div>
-  );
-};
-
-const SponsorPopup: React.FC<{ kundenId: string; themaFarbe: string; onClose: () => void }> = ({ kundenId, themaFarbe, onClose }) => {
-  const { t } = useLanguage();
-  const [logoUrl, setLogoUrl] = useState('');
-  const [bannerText, setBannerText] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
-  useEffect(() => { getSponsor(kundenId).then(s => { if (s) { setLogoUrl(s.logoUrl || ''); setBannerText(s.bannerText || ''); setLinkUrl(s.linkUrl || ''); } }); }, [kundenId]);
-  const handleSave = async () => {
-    setSaving(true); setError(''); setSuccess('');
-    try {
-      const params = new URLSearchParams({ action: 'update_sponsor', kundenId, logoUrl, bannerText, linkUrl });
-      const res = await fetch(`${API_EXEC_URL}?${params}`);
-      const data = await res.json();
-      if (data.success) { delete sponsorCache[kundenId]; setSuccess(t('status_sponsor_gespeichert', '✅ Sponsor gespeichert!')); setTimeout(() => { setSuccess(''); onClose(); }, 1500); }
-      else { setError(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt'))); }
-    } catch { setError(t('error_verbindungsfehler', 'Verbindungsfehler')); } finally { setSaving(false); }
-  };
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 440, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('title_sponsor', '🤝 Sponsor einrichten')}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_logo_url', 'Logo URL')}</label>
-            <input value={logoUrl} onChange={(e: any) => setLogoUrl(e.target.value)} placeholder="https://i.imgur.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_banner_text', 'Banner Text')}</label>
-            <textarea value={bannerText} onChange={(e: any) => setBannerText(e.target.value)} rows={4} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111', resize: 'vertical' as const }} /></div>
-          <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_link_url', 'Link URL')}</label>
-            <input value={linkUrl} onChange={(e: any) => setLinkUrl(e.target.value)} placeholder="https://..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} /></div>
-        </div>
-        {success && <p style={{ color: 'green', margin: '12px 0 0', fontSize: 14 }}>{success}</p>}
-        {error && <p style={{ color: 'red', margin: '12px 0 0', fontSize: 14 }}>{error}</p>}
-        <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
-          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-            {saving ? t('btn_speichern_laeuft', 'Speichern...') : t('btn_sponsor_speichern', '💾 Sponsor speichern')}
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -476,7 +424,6 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const [feedState, setFeedState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const feedLoadingRef = useRef(false);
   const [showForm, setShowForm] = useState(false);
-  const [showSponsorForm, setShowSponsorForm] = useState(false);
   const [titel, setTitel] = useState('');
   const [text, setText] = useState('');
   const [bildUrl, setBildUrl] = useState('');
@@ -725,7 +672,6 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {showBildInfo && <InfoPopup onClose={() => setShowBildInfo(false)} themaFarbe={themaFarbe} />}
-      {showSponsorForm && <SponsorPopup kundenId={kundenId} themaFarbe={themaFarbe} onClose={() => setShowSponsorForm(false)} />}
       {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} kundenId={kundenId} kategorien={kategorienFinal} kategorieFest={isTeam} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
 
       <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
@@ -734,7 +680,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         {teamRolle && (
           <div style={{ background: themaFarbe, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>
-              {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : teamRolle === 'abtl' ? t('lbl_rolle_abteilungsleiter', '🏅 Abteilungsleiter') : [t('lbl_rolle_unteradmin', 'Unteradmin'), translateKategorie(teamMannschaft, t)].filter(Boolean).join(' · ')}
+              {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : [t('lbl_rolle_unteradmin', 'Unteradmin'), translateKategorie(teamMannschaft, t)].filter(Boolean).join(' · ')}
             </span>
             <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
           </div>
@@ -771,7 +717,6 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         {canPost && !showForm && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
             <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: 'white', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>{t('btn_neuer_beitrag', '⊕ NEUEN BEITRAG ERSTELLEN')}</button>
-            {isAdmin && <button onClick={() => setShowSponsorForm(true)} style={{ width: '100%', padding: 12, borderRadius: 10, backgroundColor: 'white', border: `2px solid ${themaFarbe}`, color: themaFarbe, fontWeight: 'bold', fontSize: 15, cursor: 'pointer' }}>{t('btn_sponsor', '🤝 SPONSOR EINRICHTEN')}</button>}
           </div>
         )}
         {canPost && showForm && (
