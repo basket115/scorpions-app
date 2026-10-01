@@ -4,6 +4,7 @@
 // SUPABASE_SECRET_KEY, der nie an den Browser geht.
 
 import { getSecretCredentials } from "./supabaseSecret.ts";
+import { gleichesPasswort } from "./passwortVergleich.ts";
 
 type SupabaseTeamRow = Record<string, unknown>;
 
@@ -51,9 +52,10 @@ type TeamRoleResult =
 
 // Prueft Kunden-ID + Passwort gegen aktive Team-Zugaenge. Das Passwort
 // wird NIE als Supabase-Query-Filter verschickt - die aktiven Zeilen
-// werden geholt und der Vergleich passiert hier im Code. Ein Treffer
+// werden geholt und der Vergleich passiert hier im Code. GENAU ein Treffer
 // liefert nur die freigegebenen Felder zurueck, nie die rohe Zeile
-// (also nie "passwort"). Kein Treffer/falsches Passwort ist eine
+// (also nie "passwort"). Kein Treffer, mehrere Treffer oder falsches
+// Passwort ist eine
 // definitive Antwort (success:false), kein Fehlerfall. null bedeutet
 // echter technischer Fehler - dann faellt der Proxy auf GAS zurueck.
 export async function fetchSupabaseTeamRole(
@@ -92,8 +94,14 @@ export async function fetchSupabaseTeamRole(
       console.warn("[Supabase Team] Keine aktiven Team-Zugaenge gefunden (getTeamRole)", kundenId);
     }
 
-    const treffer = rows.find((row) => String(row.passwort ?? "") === password);
-    if (!treffer) return { success: false };
+    // Genau ein Treffer: passt das Passwort zu mehreren Zugaengen, waere
+    // die Rolle zufaellig - dann wird niemand angemeldet.
+    const alleTreffer = rows.filter((row) => gleichesPasswort(String(row.passwort ?? ""), password));
+    if (alleTreffer.length > 1) {
+      console.warn("[Supabase Team] Passwort passt zu mehreren Zugaengen (getTeamRole)", kundenId);
+    }
+    if (alleTreffer.length !== 1) return { success: false };
+    const treffer = alleTreffer[0];
 
     return {
       success: true,

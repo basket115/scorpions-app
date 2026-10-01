@@ -12,25 +12,18 @@ const FIELD_MAP: Record<string, string> = {
 
 type SupabaseSponsorRow = Record<string, unknown>;
 
-// Wird zurueckgegeben, wenn ein Kunde (noch) keinen aktiven Sponsor in
-// Supabase hat. Das ist kein Fehlerfall - die App soll trotzdem einen
-// Banner anzeigen koennen statt leer dazustehen.
-function buildDefaultSponsor(kundenId: string): Record<string, unknown> {
-  return {
-    Kunden_ID: kundenId,
-    Logo_URL: "",
-    Banner_Text: "Vereins-App powered by ONLANG – Die Plattform für moderne Vereins-Apps.",
-    Banner_Bild_URL: "https://i.imgur.com/EYrDlqA.png",
-    Banner_Link_URL: "https://onlang.de",
-    Aktiv: true,
-  };
+// Zeilen mit gefuelltem "slot" (z. B. HERO_RIGHT) sind nur fuer die
+// Websites gedacht und gehoeren nicht in die App.
+function hatSlot(row: SupabaseSponsorRow): boolean {
+  return String(row.slot ?? "").trim() !== "";
 }
 
 // Liest per read-only-Key (SUPABASE_ANON_KEY) die aktiven Sponsoren fuer
-// einen Kunden. Wirft nie - ein echter Fehler (fehlende Env-Vars,
-// Netzwerk, Timeout) liefert null, damit der aufrufende Proxy auf die
-// GAS-Sponsoren zurueckfallen kann. Kein Treffer ist KEIN Fehler und
-// liefert stattdessen den ONLANG-Standard-Sponsor.
+// einen Kunden, ohne Zeilen mit "slot". Wirft nie - ein echter Fehler
+// (fehlende Env-Vars, Netzwerk, Timeout) liefert null, damit der
+// aufrufende Proxy auf die GAS-Sponsoren zurueckfallen kann. Kein Treffer
+// ist KEIN Fehler und liefert eine leere Liste - den ONLANG-Standard-Sponsor
+// zeigt nur die App (Tab1.tsx), in der Sprache der App.
 export async function fetchSupabaseSponsoren(
   kundenId: string
 ): Promise<Record<string, unknown>[] | null> {
@@ -62,7 +55,7 @@ export async function fetchSupabaseSponsoren(
     const rows = (await response.json()) as SupabaseSponsorRow[];
     if (!Array.isArray(rows)) return null;
 
-    const sponsoren = rows.map((row) => {
+    return rows.filter((row) => !hatSlot(row)).map((row) => {
       const sponsor: Record<string, unknown> = { id: row.id };
       for (const [supabaseField, appField] of Object.entries(FIELD_MAP)) {
         const value = row[supabaseField];
@@ -72,8 +65,6 @@ export async function fetchSupabaseSponsoren(
       }
       return sponsor;
     });
-
-    return sponsoren.length ? sponsoren : [buildDefaultSponsor(kundenId)];
   } catch (error) {
     console.error("[Supabase Sponsoren] Laden fehlgeschlagen", error);
     return null;

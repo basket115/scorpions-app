@@ -4,6 +4,7 @@
 // der Zugang serverseitig gegen "team_zugaenge" geprueft.
 
 import { getSecretCredentials as getSecretCredentialsMitPrefix } from "./supabaseSecret.ts";
+import { gleichesPasswort } from "./passwortVergleich.ts";
 
 type SupabaseRow = Record<string, unknown>;
 
@@ -51,7 +52,7 @@ export async function pruefeZugang(
     const rows = (await response.json()) as SupabaseRow[];
     if (!Array.isArray(rows)) return null;
 
-    const treffer = rows.filter((row) => String(row.passwort ?? "") === passwort);
+    const treffer = rows.filter((row) => gleichesPasswort(String(row.passwort ?? ""), passwort));
     if (treffer.length !== 1) return null;
 
     return {

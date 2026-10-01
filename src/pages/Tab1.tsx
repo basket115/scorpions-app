@@ -124,11 +124,10 @@ async function getSponsor(kundenId: string): Promise<SponsorData | null> {
   return (await getSponsoren(kundenId))[0] ?? null;
 }
 
-const DEFAULT_SPONSOR: SponsorData = {
-  logoUrl: 'https://i.imgur.com/5b852Lw.png',
-  bannerText: 'Partner für unsere Vereins-App\nDiese App wurde von ONLANG entwickelt – einer Plattform für moderne Vereinskommunikation.\n\nONLANG hilft Sportvereinen dabei, ihre Organisation zu digitalisieren und Mitglieder sowie Fans direkt über eine eigene App zu erreichen.',
-  linkUrl: 'https://onlang-app.netlify.app',
-};
+// Einziger Standard-Sponsor: wird gezeigt, wenn ein Kunde keinen aktiven
+// Sponsor hat. Der Text kommt in der App-Sprache aus translations.ts.
+const DEFAULT_SPONSOR_LOGO = 'https://res.cloudinary.com/dhn90jugp/image/upload/v1790830639/ONLANG_Logo_f%C3%BCr_Instagram_am_03.07.2026_ziydyy.png';
+const DEFAULT_SPONSOR_LINK = 'https://onlang.de';
 
 // Ein gemeinsamer Takt fuer alle Partner-Bloecke: der Timer laeuft nur,
 // solange mindestens ein Block mit mehreren Sponsoren sichtbar ist, und
@@ -187,7 +186,12 @@ const SponsorBanner: React.FC<{ kundenId: string; initialSponsoren?: SponsorData
     });
   }, [kundenId, initialSponsoren]);
 
-  const liste = sponsoren.length ? sponsoren : [DEFAULT_SPONSOR];
+  const standardSponsor: SponsorData = {
+    logoUrl: DEFAULT_SPONSOR_LOGO,
+    bannerText: t('sponsor_standard_text', 'Vereins-App powered by ONLANG – die Plattform für moderne Vereins-Apps.'),
+    linkUrl: DEFAULT_SPONSOR_LINK,
+  };
+  const liste = sponsoren.length ? sponsoren : [standardSponsor];
   const takt = useSponsorTakt(loaded && liste.length > 1);
 
   if (!loaded) return null;
@@ -725,7 +729,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         {teamRolle && (
           <div style={{ background: themaFarbe, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>
-              {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : teamRolle === 'abtl' ? t('lbl_rolle_abteilungsleiter', '🏅 Abteilungsleiter') : `🏀 ${translateKategorie(teamMannschaft, t)}`}
+              {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : teamRolle === 'abtl' ? t('lbl_rolle_abteilungsleiter', '🏅 Abteilungsleiter') : [t('lbl_rolle_unteradmin', 'Unteradmin'), translateKategorie(teamMannschaft, t)].filter(Boolean).join(' · ')}
             </span>
             <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
           </div>
