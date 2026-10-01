@@ -3,7 +3,14 @@ import { fetchSupabaseBranding, istSupabaseKunde } from "./lib/supabaseBranding.
 import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
-import { pruefeZugang, createBeitrag, updateBeitrag, deleteBeitrag } from "./lib/supabaseBeitraegeSchreiben.ts";
+import {
+  pruefeZugang,
+  createBeitrag,
+  updateBeitrag,
+  deleteBeitrag,
+  unteradminKategorie,
+  ladeVereinsKategorien,
+} from "./lib/supabaseBeitraegeSchreiben.ts";
 import { filterBranding } from "./lib/brandingFilter.ts";
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
@@ -182,11 +189,34 @@ export default async (request: Request, context: Context) => {
         );
       }
 
+      // Hauptadmin: Kategorie wie geschickt. Unteradmin: immer seine
+      // Mannschaft aus der team_zugaenge-Zeile - die Kategorie vom Browser
+      // wird ignoriert.
+      let kategorie = String(body?.kategorie ?? "").trim() || "News";
       if (zugang.rolle !== "admin") {
-        return new Response(
-          JSON.stringify({ success: false, error: "Keine Berechtigung" }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
+        const eigeneKategorie = unteradminKategorie(zugang);
+        if (!eigeneKategorie) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Keine Berechtigung" }),
+            { status: 200, headers: RESPONSE_HEADERS }
+          );
+        }
+
+        // Sicherheitsnetz: die Mannschaft muss eine Kategorie des Vereins sein.
+        const vereinsKategorien = await ladeVereinsKategorien(zugang.kunden_id);
+        if (!vereinsKategorien) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Speichern fehlgeschlagen" }),
+            { status: 200, headers: RESPONSE_HEADERS }
+          );
+        }
+        if (!vereinsKategorien.includes(eigeneKategorie)) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Mannschaft ist keine Kategorie des Vereins" }),
+            { status: 200, headers: RESPONSE_HEADERS }
+          );
+        }
+        kategorie = eigeneKategorie;
       }
 
       // kunden_id kommt aus der gefundenen team_zugaenge-Zeile, nicht vom Browser.
@@ -196,7 +226,7 @@ export default async (request: Request, context: Context) => {
         text,
         bild_url: String(body?.bildUrl ?? "").trim(),
         video_url: String(body?.videoUrl ?? "").trim(),
-        kategorie: String(body?.kategorie ?? "").trim() || "News",
+        kategorie,
       });
 
       if (!beitrag) {
@@ -259,21 +289,24 @@ export default async (request: Request, context: Context) => {
         );
       }
 
-      if (zugang.rolle !== "admin") {
-        return new Response(
-          JSON.stringify({ success: false, error: "Keine Berechtigung" }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
-      }
-
-      // kunden_id kommt aus der gefundenen team_zugaenge-Zeile, nicht vom Browser.
-      const beitrag = await updateBeitrag(id, zugang.kunden_id, {
+      // kunden_id, rolle und mannschaft kommen aus der gefundenen
+      // team_zugaenge-Zeile, nicht vom Browser. Ob der Zugang diesen Beitrag
+      // aendern darf (Hauptadmin immer, Unteradmin nur in seiner Kategorie),
+      // prueft updateBeitrag an der gespeicherten Kategorie.
+      const beitrag = await updateBeitrag(id, zugang, {
         titel,
         text,
         bild_url: String(body?.bildUrl ?? "").trim(),
         video_url: String(body?.videoUrl ?? "").trim(),
         kategorie: String(body?.kategorie ?? "").trim(),
       });
+
+      if (beitrag === "nicht_erlaubt") {
+        return new Response(
+          JSON.stringify({ success: false, error: "Keine Berechtigung" }),
+          { status: 200, headers: RESPONSE_HEADERS }
+        );
+      }
 
       if (beitrag === "nicht_gefunden") {
         return new Response(
@@ -333,15 +366,18 @@ export default async (request: Request, context: Context) => {
         );
       }
 
-      if (zugang.rolle !== "admin") {
+      // kunden_id, rolle und mannschaft kommen aus der gefundenen
+      // team_zugaenge-Zeile, nicht vom Browser. Ob der Zugang diesen Beitrag
+      // loeschen darf (Hauptadmin immer, Unteradmin nur in seiner Kategorie),
+      // prueft deleteBeitrag an der gespeicherten Kategorie.
+      const beitrag = await deleteBeitrag(id, zugang);
+
+      if (beitrag === "nicht_erlaubt") {
         return new Response(
           JSON.stringify({ success: false, error: "Keine Berechtigung" }),
           { status: 200, headers: RESPONSE_HEADERS }
         );
       }
-
-      // kunden_id kommt aus der gefundenen team_zugaenge-Zeile, nicht vom Browser.
-      const beitrag = await deleteBeitrag(id, zugang.kunden_id);
 
       if (beitrag === "nicht_gefunden") {
         return new Response(

@@ -309,7 +309,9 @@ const SponsorPopup: React.FC<{ kundenId: string; themaFarbe: string; onClose: ()
   );
 };
 
-const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; kategorien: string[]; onClose: () => void; onSaved: (updated: any) => void }> = ({ beitrag, themaFarbe, kundenId, kategorien, onClose, onSaved }) => {
+// kategorieFest: beim Unteradmin ist die Kategorie nicht wählbar (der Proxy
+// würde eine Änderung ohnehin ignorieren).
+const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; kategorien: string[]; kategorieFest?: boolean; onClose: () => void; onSaved: (updated: any) => void }> = ({ beitrag, themaFarbe, kundenId, kategorien, kategorieFest, onClose, onSaved }) => {
   const { t } = useLanguage();
   const [titel, setTitel] = useState(beitrag.Titel || '');
   const [text, setText] = useState(beitrag.Text || '');
@@ -365,7 +367,9 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
           <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_video_url', '▶ YouTube URL')}</label>
             <input value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} />
             <YouTubeHinweis url={videoUrl} /></div>
-          {kategorieOptionen.length > 0 && (
+          {kategorieFest ? (
+            <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc', background: '#f0f0f0', color: '#555', fontSize: 14 }}>{t('lbl_kategorie', 'Kategorie: ')}<strong>{translateKategorie(kategorie, t)}</strong></div>
+          ) : kategorieOptionen.length > 0 && (
             <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_kategorie_auswahl', 'Kategorie')}</label>
               <select value={kategorie} onChange={(e: any) => setKategorie(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, color: '#111' }}>
                 {!kategorie && <option value="">—</option>}
@@ -507,7 +511,8 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
   const canDelete = (beitrag: any): boolean => {
     if (isAdmin) return true;
-    if (isTeam) return String(beitrag.Kategorie || '').trim() === teamMannschaft;
+    // Wie im Proxy (darfKategorie): Leerzeichen am Rand zählen nicht, Groß-/Kleinschreibung zählt.
+    if (isTeam) return !!teamMannschaft.trim() && String(beitrag.Kategorie || '').trim() === teamMannschaft.trim();
     return false;
   };
 
@@ -721,7 +726,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {showBildInfo && <InfoPopup onClose={() => setShowBildInfo(false)} themaFarbe={themaFarbe} />}
       {showSponsorForm && <SponsorPopup kundenId={kundenId} themaFarbe={themaFarbe} onClose={() => setShowSponsorForm(false)} />}
-      {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} kundenId={kundenId} kategorien={kategorienFinal} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
+      {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} kundenId={kundenId} kategorien={kategorienFinal} kategorieFest={isTeam} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
 
       <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
 

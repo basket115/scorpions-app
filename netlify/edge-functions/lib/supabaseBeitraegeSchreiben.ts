@@ -66,6 +66,63 @@ export async function pruefeZugang(
   }
 }
 
+// Kategorie, in der ein Unteradmin (rolle "team") schreiben darf: seine
+// Mannschaft ohne Leerzeichen am Rand. Leer = er darf nichts.
+export function unteradminKategorie(zugang: Zugang): string {
+  return zugang.rolle === "team" ? zugang.mannschaft.trim() : "";
+}
+
+// Hauptadmin (rolle "admin") darf jede Kategorie. Ein Unteradmin nur die,
+// die genau seiner Mannschaft entspricht: Leerzeichen am Rand zaehlen
+// nicht, Gross-/Kleinschreibung zaehlt. Alle anderen Rollen duerfen nichts.
+export function darfKategorie(zugang: Zugang, kategorie: unknown): boolean {
+  if (zugang.rolle === "admin") return true;
+  const eigene = unteradminKategorie(zugang);
+  return eigene !== "" && String(kategorie ?? "").trim() === eigene;
+}
+
+// Wie in der App (Tab1.tsx), wenn beim Verein keine Kategorien stehen.
+const STANDARD_KATEGORIEN = ["News", "Spiel", "Training", "Sonstiges"];
+
+// Kategorien des Vereins aus "kunden.kategorien" (Komma-Liste). null nur
+// bei technischem Fehler oder unbekanntem Kunden.
+export async function ladeVereinsKategorien(kundenId: string): Promise<string[] | null> {
+  if (!kundenId) return null;
+
+  const creds = getSecretCredentials();
+  if (!creds) return null;
+
+  try {
+    const response = await fetch(
+      `${creds.supabaseUrl}/rest/v1/kunden?kunden_id=eq.${encodeURIComponent(kundenId)}&select=kategorien`,
+      {
+        method: "GET",
+        headers: {
+          apikey: creds.secretKey,
+        },
+        signal: AbortSignal.timeout(4000),
+      }
+    );
+
+    if (!response.ok) {
+      console.error("[Supabase Schreiben] Unerwarteter Status (ladeVereinsKategorien)", response.status);
+      return null;
+    }
+
+    const rows = (await response.json()) as SupabaseRow[];
+    if (!Array.isArray(rows) || rows.length !== 1) return null;
+
+    const wert = rows[0].kategorien;
+    const liste = (Array.isArray(wert) ? wert : String(wert ?? "").split(","))
+      .map((k) => String(k ?? "").trim())
+      .filter(Boolean);
+    return liste.length ? liste : STANDARD_KATEGORIEN;
+  } catch (error) {
+    console.error("[Supabase Schreiben] Laden fehlgeschlagen (ladeVereinsKategorien)", error);
+    return null;
+  }
+}
+
 export type NeuerBeitrag = {
   kunden_id: string;
   titel: string;
@@ -127,51 +184,75 @@ export type BeitragAenderung = {
   kategorie: string;
 };
 
-// Aendert einen bestehenden, nicht geloeschten Beitrag des Kunden. Liest
-// ihn vorher (id + kunden_id + geloescht nicht true) - gibt es ihn nicht,
-// wird "nicht_gefunden" geliefert. Geaendert werden NUR titel, text,
-// bild_url, video_url und (wenn angegeben) kategorie; datum und
-// erstellt_am bleiben unveraendert. Liefert die geaenderte Zeile, bei
-// technischem Fehler null.
-export async function updateBeitrag(
+// Liest einen bestehenden, nicht geloeschten Beitrag des Kunden und prueft,
+// ob der Zugang dessen Kategorie aendern darf (darfKategorie). Liefert bei
+// Erfolg den Filter fuer das anschliessende PATCH: beim Unteradmin haengt
+// die gelesene Kategorie mit am Filter, damit ein Beitrag, der inzwischen
+// die Kategorie gewechselt hat, nicht mehr getroffen wird.
+async function pruefeBeitrag(
+  creds: { supabaseUrl: string; secretKey: string },
   id: string,
-  kundenId: string,
-  felder: BeitragAenderung
-): Promise<SupabaseRow | "nicht_gefunden" | null> {
-  if (!id || !kundenId) return "nicht_gefunden";
-
-  const creds = getSecretCredentials();
-  if (!creds) return null;
-
+  zugang: Zugang,
+  aktion: string
+): Promise<{ filter: string } | "nicht_gefunden" | "nicht_erlaubt" | null> {
   // geloescht=not.is.true statt eq.false, damit auch NULL als "nicht
   // geloescht" gilt - wie im Lesecode (supabaseBeitraege.ts).
   const filter =
     `?id=eq.${encodeURIComponent(id)}` +
-    `&kunden_id=eq.${encodeURIComponent(kundenId)}` +
+    `&kunden_id=eq.${encodeURIComponent(zugang.kunden_id)}` +
     `&geloescht=not.is.true`;
 
-  try {
-    const leseResponse = await fetch(
-      `${creds.supabaseUrl}/rest/v1/beitraege${filter}&select=id`,
-      {
-        method: "GET",
-        headers: {
-          apikey: creds.secretKey,
-        },
-        signal: AbortSignal.timeout(4000),
-      }
-    );
-
-    if (!leseResponse.ok) {
-      console.error("[Supabase Schreiben] Unerwarteter Status (updateBeitrag lesen)", leseResponse.status);
-      return null;
+  const leseResponse = await fetch(
+    `${creds.supabaseUrl}/rest/v1/beitraege${filter}&select=id,kategorie`,
+    {
+      method: "GET",
+      headers: {
+        apikey: creds.secretKey,
+      },
+      signal: AbortSignal.timeout(4000),
     }
+  );
 
-    const vorhanden = (await leseResponse.json()) as SupabaseRow[];
-    if (!Array.isArray(vorhanden)) return null;
-    if (vorhanden.length !== 1) return "nicht_gefunden";
+  if (!leseResponse.ok) {
+    console.error(`[Supabase Schreiben] Unerwarteter Status (${aktion} lesen)`, leseResponse.status);
+    return null;
+  }
 
-    const response = await fetch(`${creds.supabaseUrl}/rest/v1/beitraege${filter}`, {
+  const vorhanden = (await leseResponse.json()) as SupabaseRow[];
+  if (!Array.isArray(vorhanden)) return null;
+  if (vorhanden.length !== 1) return "nicht_gefunden";
+  if (!darfKategorie(zugang, vorhanden[0].kategorie)) return "nicht_erlaubt";
+
+  if (zugang.rolle === "admin") return { filter };
+  return { filter: `${filter}&kategorie=eq.${encodeURIComponent(String(vorhanden[0].kategorie ?? ""))}` };
+}
+
+// Aendert einen bestehenden, nicht geloeschten Beitrag des Kunden. Liest
+// ihn vorher (id + kunden_id + geloescht nicht true) - gibt es ihn nicht,
+// wird "nicht_gefunden" geliefert; darf der Zugang die Kategorie des
+// Beitrags nicht aendern, "nicht_erlaubt". Geaendert werden NUR titel, text,
+// bild_url, video_url und (wenn angegeben, nur Hauptadmin) kategorie; datum
+// und erstellt_am bleiben unveraendert. Liefert die geaenderte Zeile, bei
+// technischem Fehler null.
+export async function updateBeitrag(
+  id: string,
+  zugang: Zugang,
+  felder: BeitragAenderung
+): Promise<SupabaseRow | "nicht_gefunden" | "nicht_erlaubt" | null> {
+  if (!id || !zugang.kunden_id) return "nicht_gefunden";
+
+  const creds = getSecretCredentials();
+  if (!creds) return null;
+
+  try {
+    const pruefung = await pruefeBeitrag(creds, id, zugang, "updateBeitrag");
+    if (!pruefung || typeof pruefung === "string") return pruefung;
+
+    // Die Kategorie darf nur der Hauptadmin aendern - beim Unteradmin
+    // bleibt der Beitrag in seiner Kategorie, egal was der Browser schickt.
+    const neueKategorie = zugang.rolle === "admin" ? felder.kategorie : "";
+
+    const response = await fetch(`${creds.supabaseUrl}/rest/v1/beitraege${pruefung.filter}`, {
       method: "PATCH",
       headers: {
         apikey: creds.secretKey,
@@ -183,7 +264,7 @@ export async function updateBeitrag(
         text: felder.text,
         bild_url: felder.bild_url,
         video_url: felder.video_url,
-        ...(felder.kategorie ? { kategorie: felder.kategorie } : {}),
+        ...(neueKategorie ? { kategorie: neueKategorie } : {}),
       }),
       signal: AbortSignal.timeout(6000),
     });
@@ -208,46 +289,23 @@ export async function updateBeitrag(
 // Loescht einen bestehenden, nicht geloeschten Beitrag des Kunden - aber
 // NUR als Markierung (geloescht=true), die Zeile bleibt erhalten. Liest
 // ihn vorher (id + kunden_id + geloescht nicht true) - gibt es ihn nicht,
-// wird "nicht_gefunden" geliefert. Liefert die markierte Zeile, bei
+// wird "nicht_gefunden" geliefert; darf der Zugang die Kategorie des
+// Beitrags nicht aendern, "nicht_erlaubt". Liefert die markierte Zeile, bei
 // technischem Fehler null.
 export async function deleteBeitrag(
   id: string,
-  kundenId: string
-): Promise<SupabaseRow | "nicht_gefunden" | null> {
-  if (!id || !kundenId) return "nicht_gefunden";
+  zugang: Zugang
+): Promise<SupabaseRow | "nicht_gefunden" | "nicht_erlaubt" | null> {
+  if (!id || !zugang.kunden_id) return "nicht_gefunden";
 
   const creds = getSecretCredentials();
   if (!creds) return null;
 
-  // geloescht=not.is.true statt eq.false, damit auch NULL als "nicht
-  // geloescht" gilt - wie im Lesecode (supabaseBeitraege.ts).
-  const filter =
-    `?id=eq.${encodeURIComponent(id)}` +
-    `&kunden_id=eq.${encodeURIComponent(kundenId)}` +
-    `&geloescht=not.is.true`;
-
   try {
-    const leseResponse = await fetch(
-      `${creds.supabaseUrl}/rest/v1/beitraege${filter}&select=id`,
-      {
-        method: "GET",
-        headers: {
-          apikey: creds.secretKey,
-        },
-        signal: AbortSignal.timeout(4000),
-      }
-    );
+    const pruefung = await pruefeBeitrag(creds, id, zugang, "deleteBeitrag");
+    if (!pruefung || typeof pruefung === "string") return pruefung;
 
-    if (!leseResponse.ok) {
-      console.error("[Supabase Schreiben] Unerwarteter Status (deleteBeitrag lesen)", leseResponse.status);
-      return null;
-    }
-
-    const vorhanden = (await leseResponse.json()) as SupabaseRow[];
-    if (!Array.isArray(vorhanden)) return null;
-    if (vorhanden.length !== 1) return "nicht_gefunden";
-
-    const response = await fetch(`${creds.supabaseUrl}/rest/v1/beitraege${filter}`, {
+    const response = await fetch(`${creds.supabaseUrl}/rest/v1/beitraege${pruefung.filter}`, {
       method: "PATCH",
       headers: {
         apikey: creds.secretKey,
