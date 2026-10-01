@@ -79,8 +79,8 @@ const BildUploadButton: React.FC<{ onUploaded: (url: string) => void; themaFarbe
 };
 
 type SponsorData = { logoUrl?: string; bannerText?: string; bannerBildUrl?: string; linkUrl?: string };
-const sponsorCache: Record<string, SponsorData | null> = {};
-const sponsorInflight: Record<string, Promise<SponsorData | null>> = {};
+const sponsorCache: Record<string, SponsorData[]> = {};
+const sponsorInflight: Record<string, Promise<SponsorData[]>> = {};
 
 async function loadSponsorsForKunde(kundenId: string): Promise<any[]> {
   try {
@@ -94,31 +94,34 @@ function isAktiv(val: any): boolean {
   return val === undefined || val === null || String(val).trim() === '' ? true : val === true || val === 'true' || String(val).toUpperCase() === 'TRUE';
 }
 
-function sponsorDataFromRows(rows: any[], kundenId: string): SponsorData | null {
-  const found = (rows || []).find((r: any) =>
-    String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv)
-  );
-
-  return found ? {
-    logoUrl: found.Logo_URL || undefined,
-    bannerText: found.Banner_Text || undefined,
-    bannerBildUrl: found.Banner_Bild_URL || undefined,
-    linkUrl: found.Banner_Link_URL || undefined
-  } : null;
+// Alle aktiven Sponsoren des Kunden, in der gelieferten Reihenfolge.
+function sponsorenFromRows(rows: any[], kundenId: string): SponsorData[] {
+  return (rows || [])
+    .filter((r: any) => String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv))
+    .map((r: any) => ({
+      logoUrl: r.Logo_URL || undefined,
+      bannerText: r.Banner_Text || undefined,
+      bannerBildUrl: r.Banner_Bild_URL || undefined,
+      linkUrl: r.Banner_Link_URL || undefined
+    }));
 }
 
-async function getSponsor(kundenId: string): Promise<SponsorData | null> {
+async function getSponsoren(kundenId: string): Promise<SponsorData[]> {
   if (kundenId in sponsorCache) return sponsorCache[kundenId];
   if (kundenId in sponsorInflight) return sponsorInflight[kundenId]; // In-Flight-Dedup: genau EIN Request pro Kunde
   const p = (async () => {
     const rows = await loadSponsorsForKunde(kundenId);
-    const found = rows.find((r: any) => String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv));
-    sponsorCache[kundenId] = found ? { logoUrl: found.Logo_URL || undefined, bannerText: found.Banner_Text || undefined, bannerBildUrl: found.Banner_Bild_URL || undefined, linkUrl: found.Banner_Link_URL || undefined } : null;
+    sponsorCache[kundenId] = sponsorenFromRows(rows, kundenId);
     delete sponsorInflight[kundenId];
     return sponsorCache[kundenId];
   })();
   sponsorInflight[kundenId] = p;
   return p;
+}
+
+// Fuer das Formular "Sponsor einrichten": weiterhin nur der erste Sponsor.
+async function getSponsor(kundenId: string): Promise<SponsorData | null> {
+  return (await getSponsoren(kundenId))[0] ?? null;
 }
 
 const DEFAULT_SPONSOR: SponsorData = {
@@ -127,46 +130,100 @@ const DEFAULT_SPONSOR: SponsorData = {
   linkUrl: 'https://onlang-app.netlify.app',
 };
 
-const SponsorBanner: React.FC<{ kundenId: string; initialSponsor?: SponsorData | null }> = ({ kundenId, initialSponsor }) => {
+// Ein gemeinsamer Takt fuer alle Partner-Bloecke: der Timer laeuft nur,
+// solange mindestens ein Block mit mehreren Sponsoren sichtbar ist, und
+// wird beendet, sobald der letzte Block verschwindet.
+const SPONSOR_WECHSEL_MS = 5000;
+let sponsorTakt = 0;
+let sponsorTaktTimer: ReturnType<typeof setInterval> | null = null;
+const sponsorTaktHoerer = new Set<(takt: number) => void>();
+
+function sponsorTaktAbonnieren(hoerer: (takt: number) => void): () => void {
+  sponsorTaktHoerer.add(hoerer);
+  if (sponsorTaktTimer === null) {
+    sponsorTaktTimer = setInterval(() => {
+      sponsorTakt += 1;
+      sponsorTaktHoerer.forEach(h => h(sponsorTakt));
+    }, SPONSOR_WECHSEL_MS);
+  }
+  return () => {
+    sponsorTaktHoerer.delete(hoerer);
+    if (sponsorTaktHoerer.size === 0 && sponsorTaktTimer !== null) {
+      clearInterval(sponsorTaktTimer);
+      sponsorTaktTimer = null;
+    }
+  };
+}
+
+function useSponsorTakt(aktiv: boolean): number {
+  const [takt, setTakt] = useState(sponsorTakt);
+  useEffect(() => {
+    if (!aktiv) return;
+    setTakt(sponsorTakt);
+    return sponsorTaktAbonnieren(setTakt);
+  }, [aktiv]);
+  return takt;
+}
+
+const SponsorBanner: React.FC<{ kundenId: string; initialSponsoren?: SponsorData[]; startIndex?: number }> = ({ kundenId, initialSponsoren, startIndex = 0 }) => {
   const { t } = useLanguage();
-  const hasBootstrapSponsor = initialSponsor !== undefined;
-  const [sponsor, setSponsor] = useState<SponsorData | null>(initialSponsor ?? null);
-  const [loaded, setLoaded] = useState(hasBootstrapSponsor);
+  const hasBootstrapSponsoren = initialSponsoren !== undefined;
+  const [sponsoren, setSponsoren] = useState<SponsorData[]>(initialSponsoren ?? []);
+  const [loaded, setLoaded] = useState(hasBootstrapSponsoren);
 
   useEffect(() => {
     if (!kundenId) return;
 
-    if (initialSponsor !== undefined) {
-      sponsorCache[kundenId] = initialSponsor;
-      setSponsor(initialSponsor);
+    if (initialSponsoren !== undefined) {
+      sponsorCache[kundenId] = initialSponsoren;
+      setSponsoren(initialSponsoren);
       setLoaded(true);
       return;
     }
 
-    getSponsor(kundenId).then(s => {
-      setSponsor(s);
+    getSponsoren(kundenId).then(liste => {
+      setSponsoren(liste);
       setLoaded(true);
     });
-  }, [kundenId, initialSponsor]);
+  }, [kundenId, initialSponsoren]);
+
+  const liste = sponsoren.length ? sponsoren : [DEFAULT_SPONSOR];
+  const takt = useSponsorTakt(loaded && liste.length > 1);
 
   if (!loaded) return null;
-  const activeSponsor = sponsor ?? DEFAULT_SPONSOR;
-  const bannerInhalt = (
-    <>
-      {activeSponsor.logoUrl && <div style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 10, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, border: '1px solid #eee' }}><img src={activeSponsor.logoUrl} alt="Partner Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} referrerPolicy="no-referrer" /></div>}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {activeSponsor.bannerText && <div style={{ fontSize: 13, lineHeight: 1.45, color: '#444', whiteSpace: 'pre-wrap' as const, fontWeight: 500 }}>{activeSponsor.bannerText}</div>}
-        {activeSponsor.linkUrl && <div style={{ marginTop: 6, fontSize: 12, color: '#0057B7', fontWeight: 600 }}>{t('btn_mehr_erfahren', 'Mehr erfahren →')}</div>}
-      </div>
-    </>
-  );
+  const sichtbar = (startIndex + takt) % liste.length;
+
+  const kasten = (s: SponsorData, extra?: React.CSSProperties, key?: number) => {
+    const bannerInhalt = (
+      <>
+        {s.logoUrl && <div style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 10, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, border: '1px solid #eee' }}><img src={s.logoUrl} alt="Partner Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} referrerPolicy="no-referrer" /></div>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {s.bannerText && <div style={{ fontSize: 13, lineHeight: 1.45, color: '#444', whiteSpace: 'pre-wrap' as const, fontWeight: 500 }}>{s.bannerText}</div>}
+          {s.linkUrl && <div style={{ marginTop: 6, fontSize: 12, color: '#0057B7', fontWeight: 600 }}>{t('btn_mehr_erfahren', 'Mehr erfahren →')}</div>}
+        </div>
+      </>
+    );
+    return s.linkUrl ? (
+      <a key={key} href={s.linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: '10px 14px', border: '1px solid #eee', textDecoration: 'none', ...extra }}>{bannerInhalt}</a>
+    ) : (
+      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: '10px 14px', border: '1px solid #eee', ...extra }}>{bannerInhalt}</div>
+    );
+  };
+
   return (
     <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' as const, color: '#aaa', marginBottom: 8 }}>{t('lbl_partner', 'Partner')}</div>
-      {activeSponsor.linkUrl ? (
-        <a href={activeSponsor.linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: '10px 14px', border: '1px solid #eee', textDecoration: 'none' }}>{bannerInhalt}</a>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: '10px 14px', border: '1px solid #eee' }}>{bannerInhalt}</div>
+      {liste.length === 1 ? kasten(liste[0]) : (
+        // Alle Sponsoren liegen uebereinander, nur einer ist sichtbar.
+        // So bleibt der Block gleich hoch und der Feed springt beim Wechsel nicht.
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)' }}>
+          {liste.map((s, i) => kasten(s, {
+            gridArea: '1 / 1',
+            opacity: i === sichtbar ? 1 : 0,
+            visibility: i === sichtbar ? 'visible' : 'hidden',
+            transition: i === sichtbar ? 'opacity 0.5s ease' : 'opacity 0.5s ease, visibility 0s linear 0.5s',
+          }, i))}
+        </div>
       )}
     </div>
   );
@@ -434,9 +491,9 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     ? bootstrapData.sponsors
     : null;
 
-  const bootstrapSponsor = useMemo<SponsorData | null | undefined>(() => {
+  const bootstrapSponsoren = useMemo<SponsorData[] | undefined>(() => {
     if (bootstrapSponsors === null) return undefined;
-    return sponsorDataFromRows(bootstrapSponsors, kundenId);
+    return sponsorenFromRows(bootstrapSponsors, kundenId);
   }, [bootstrapSponsors, kundenId]);
 
   // Admin nur noch über den Team-Login (team_zugaenge, rolle='admin').
@@ -545,9 +602,9 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   }, [bootstrapData, loading, ladeBeitraege]);
 
   useEffect(() => {
-    if (!kundenId || bootstrapSponsor === undefined) return;
-    sponsorCache[kundenId] = bootstrapSponsor;
-  }, [kundenId, bootstrapSponsor]);
+    if (!kundenId || bootstrapSponsoren === undefined) return;
+    sponsorCache[kundenId] = bootstrapSponsoren;
+  }, [kundenId, bootstrapSponsoren]);
 
   useEffect(() => {
     if (!sichtbareKategorien.length) return;
@@ -791,7 +848,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: 'white', borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
                 )}
                 <SocialBar b={b} />
-                {kundenId && <SponsorBanner kundenId={kundenId} initialSponsor={bootstrapSponsor} />}
+                {kundenId && <SponsorBanner kundenId={kundenId} initialSponsoren={bootstrapSponsoren} startIndex={i} />}
               </div>
             );
           })

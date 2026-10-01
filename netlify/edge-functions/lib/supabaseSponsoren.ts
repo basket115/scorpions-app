@@ -44,7 +44,7 @@ export async function fetchSupabaseSponsoren(
   }
 
   try {
-    const requestUrl = `${supabaseUrl}/rest/v1/sponsoren?kunden_id=eq.${encodeURIComponent(kundenId)}&aktiv=eq.true&select=*`;
+    const requestUrl = `${supabaseUrl}/rest/v1/sponsoren?kunden_id=eq.${encodeURIComponent(kundenId)}&aktiv=eq.true&select=*&order=position.asc.nullslast,id.asc`;
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
