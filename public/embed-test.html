@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Testseite: ONLANG Beitragsfenster</title>
+<!--
+  Testseite fuer /embed. Sie tut so, als waere sie eine Vereins-Website
+  (z. B. WordPress, Block "Individuelles HTML") und bettet das
+  Beitragsfenster zweimal ein: einmal alle Beitraege von D001, einmal nur
+  die Abteilung Tennis. Die iFrames zeigen auf dieselbe Adresse wie diese
+  Seite, damit der Test auch in der Branch-Vorschau funktioniert.
+-->
+<style>
+  body { margin: 0; background: #f4f1ea; color: #222; font-family: Georgia, "Times New Roman", serif; line-height: 1.6; }
+  header { background: #0B6631; color: #fff; padding: 22px 20px; }
+  header h1 { margin: 0 auto; max-width: 760px; font-size: 24px; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+  h2 { margin: 34px 0 6px; font-size: 22px; }
+  p.erklaerung { margin: 0 0 14px; color: #555; font-family: system-ui, sans-serif; font-size: 14px; }
+  pre { background: #1d2430; color: #e7ecf3; padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  footer { max-width: 760px; margin: 0 auto; padding: 0 20px 50px; color: #777; font-family: system-ui, sans-serif; font-size: 13px; }
+</style>
+</head>
+<body>
+<header><h1>Testseite – so sähe es auf einer Vereins-Website aus</h1></header>
+<main>
+  <p class="erklaerung">Diese Seite gehört nicht zur App. Sie prüft nur das einbettbare Beitragsfenster. Unter jedem Fenster muss der Text „Ende des Fensters“ direkt anschließen – ohne Lücke und ohne zweiten Scrollbalken.</p>
+
+  <h2>Aktuelles aus dem Verein</h2>
+  <p class="erklaerung">Alle Beiträge von D001: <code>/embed?kunde=D001</code></p>
+  <!-- ===== Anfang Einbettcode 1 ===== -->
+  <iframe class="onlang-beitraege" src="/embed?kunde=D001"
+    title="Aktuelles vom SV Schloßberg" loading="lazy"
+    style="width:100%;border:0;height:600px"></iframe>
+  <!-- ===== Ende Einbettcode 1 ===== -->
+  <p class="erklaerung">↑ Ende des Fensters (alle Beiträge).</p>
+
+  <h2>Neues aus der Tennis-Abteilung</h2>
+  <p class="erklaerung">Nur eine Abteilung: <code>/embed?kunde=D001&amp;kategorie=Tennis</code></p>
+  <!-- ===== Anfang Einbettcode 2 ===== -->
+  <iframe class="onlang-beitraege" src="/embed?kunde=D001&amp;kategorie=Tennis"
+    title="Neues aus der Tennis-Abteilung" loading="lazy"
+    style="width:100%;border:0;height:600px"></iframe>
+  <!-- ===== Ende Einbettcode 2 ===== -->
+  <p class="erklaerung">↑ Ende des Fensters (Tennis).</p>
+
+  <!-- Das kleine Skript fuer die automatische Hoehe. Einmal je Seite reicht, auch bei mehreren Fenstern. -->
+  <script>
+  window.addEventListener("message", function (e) {
+    if (e.origin !== window.location.origin) return; /* auf der Vereinsseite: "https://club.onlang.de" */
+    if (!e.data || e.data.typ !== "onlang-hoehe") return;
+    var fenster = document.querySelectorAll("iframe.onlang-beitraege");
+    for (var i = 0; i < fenster.length; i++) {
+      if (fenster[i].contentWindow === e.source) fenster[i].style.height = Math.ceil(e.data.hoehe) + "px";
+    }
+  });
+  </script>
+
+  <h2>Einbettcode für WordPress</h2>
+  <p class="erklaerung">Für den Block „Individuelles HTML“. Gilt erst nach der Freigabe, wenn <code>club.onlang.de/embed</code> live ist.</p>
+<pre>&lt;iframe class="onlang-beitraege"
+  src="https://club.onlang.de/embed?kunde=D001&amp;amp;kategorie=Tennis"
+  title="Neues aus der Tennis-Abteilung" loading="lazy"
+  style="width:100%;border:0;height:600px"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+window.addEventListener("message", function (e) {
+  if (e.origin !== "https://club.onlang.de") return;
+  if (!e.data || e.data.typ !== "onlang-hoehe") return;
+  var fenster = document.querySelectorAll("iframe.onlang-beitraege");
+  for (var i = 0; i &lt; fenster.length; i++) {
+    if (fenster[i].contentWindow === e.source)
+      fenster[i].style.height = Math.ceil(e.data.hoehe) + "px";
+  }
+});
+&lt;/script&gt;</pre>
+</main>
+<footer>Testseite für die Vorschau des Branches embed-fenster.</footer>
+</body>
+</html>

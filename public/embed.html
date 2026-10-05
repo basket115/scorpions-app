@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<meta name="color-scheme" content="light" />
+<title>ONLANG Beiträge</title>
+<!--
+  Einbettbares Beitragsfenster fuer fremde Vereins-Websites (iFrame).
+  Adresse:  /embed?kunde=D001            alle Beitraege des Vereins
+            /embed?kunde=D001&kategorie=Tennis   nur eine Abteilung
+            /embed?kunde=D001&anzahl=5           hoechstens 5 Beitraege
+  Nur lesen: Daten kommen ueber den Proxy (get_bootstrap). Kein Schluessel,
+  kein Login, keine Cookies, kein localStorage.
+  Die Hoehe wird per postMessage an die einbettende Seite gemeldet
+  ({ typ: "onlang-hoehe", hoehe: Zahl }).
+-->
+<style>
+  :root { --farbe: #111111; --auf-farbe: #ffffff; --text: #1d2430; --grau: #667085; --linie: #e3e7ee; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--text); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  /* 1px Innenabstand: Raender der Karten zaehlen so zur gemessenen Hoehe */
+  #liste { padding: 1px; display: flex; flex-direction: column; gap: 14px; }
+  .hinweis { margin: 0; padding: 28px 12px; text-align: center; color: var(--grau); }
+  .beitrag { background: #fff; border: 1px solid var(--linie); border-left: 4px solid var(--farbe); border-radius: 10px; overflow: hidden; }
+  .kopf { display: flex; flex-direction: column; }
+  .bild { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #f1f3f6; cursor: pointer; }
+  .inhalt { padding: 14px 16px 16px; min-width: 0; flex: 1; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--grau); margin-bottom: 6px; }
+  .kategorie { background: var(--farbe); color: var(--auf-farbe); font-weight: 700; font-size: 12px; letter-spacing: .02em; padding: 2px 9px; border-radius: 999px; }
+  .titel { margin: 0 0 6px; font-size: 18px; line-height: 1.3; font-weight: 800; overflow-wrap: anywhere; }
+  .titel button { all: unset; cursor: pointer; display: block; width: 100%; }
+  .titel button:focus-visible, .mehr:focus-visible, .video-knopf:focus-visible { outline: 2px solid var(--farbe); outline-offset: 2px; border-radius: 4px; }
+  .text { margin: 0; color: #414b5a; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .beitrag:not(.offen) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  .mehr { margin-top: 10px; background: #fff; color: var(--text); border: 1.5px solid var(--farbe); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .mehr:hover { background: var(--farbe); color: var(--auf-farbe); }
+  .video { margin-top: 14px; }
+  .video-knopf { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; aspect-ratio: 16 / 9; background: #10151c; color: #fff; border: 0; border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer; padding: 12px; text-align: center; }
+  .video-knopf span.play { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background: var(--farbe); color: var(--auf-farbe); flex: none; }
+  .video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; }
+  .video a { color: var(--text); font-weight: 700; }
+  /* Ab Tablet-Breite: Bild links, Text rechts. Aufgeklappt wieder Bild oben in voller Breite. */
+  @media (min-width: 560px) {
+    .beitrag:not(.offen) .kopf { flex-direction: row; align-items: stretch; }
+    .beitrag:not(.offen) .bild { width: 220px; flex: none; aspect-ratio: auto; height: auto; min-height: 150px; max-height: 190px; }
+    .titel { font-size: 19px; }
+  }
+  .beitrag.offen .bild { aspect-ratio: auto; max-height: 70vh; object-fit: contain; cursor: default; }
+</style>
+</head>
+<body>
+<div id="liste" aria-live="polite"><p class="hinweis">…</p></div>
+<script>
+(function () {
+  "use strict";
+
+  var TEXTE = {
+    de: { weiter: "Weiterlesen", weniger: "Weniger anzeigen", leer: "Noch keine Beiträge.", leerKat: function (k) { return "Keine Beiträge in „" + k + "“."; },
+          fehler: "Der Verein konnte nicht geladen werden.", videoLaden: "Video laden (YouTube)", videoOeffnen: "Video öffnen" },
+    hu: { weiter: "Tovább olvasom", weniger: "Kevesebb", leer: "Még nincsenek bejegyzések.", leerKat: function (k) { return "Nincs bejegyzés itt: „" + k + "”."; },
+          fehler: "A klub adatai nem tölthetők be.", videoLaden: "Videó betöltése (YouTube)", videoOeffnen: "Videó megnyitása" },
+    en: { weiter: "Read more", weniger: "Show less", leer: "No posts yet.", leerKat: function (k) { return "No posts in “" + k + "”."; },
+          fehler: "The club could not be loaded.", videoLaden: "Load video (YouTube)", videoOeffnen: "Open video" }
+  };
+  /* Wie in der App (translations.ts): nur diese allgemeinen Kategorienamen werden uebersetzt angezeigt. */
+  var KATEGORIEN = {
+    News: { hu: "Hírek", en: "News" }, Vorstand: { hu: "Vezetőség", en: "Board" }, Jugend: { hu: "Utánpótlás", en: "Youth" },
+    Ergebnisse: { hu: "Eredmények", en: "Results" }, Spielplan: { hu: "Menetrend", en: "Schedule" }, Damen: { hu: "Női csapat", en: "Women" },
+    Herren: { hu: "Férfi csapat", en: "Men" }, Senioren: { hu: "Felnőttek", en: "Adults" }, Infos: { hu: "Információk", en: "Information" },
+    Live: { hu: "Élő", en: "Live" }, Verein: { hu: "Egyesület", en: "Club" }
+  };
+  var STANDARD_ANZAHL = 20, MAX_ANZAHL = 100;
+
+  var params = new URLSearchParams(window.location.search);
+  var kunde = (params.get("kunde") || params.get("kundenId") || "").trim().toUpperCase();
+  var kategorie = (params.get("kategorie") || "").trim();
+  var anzahl = parseInt(params.get("anzahl") || "", 10);
+  if (!(anzahl > 0)) anzahl = STANDARD_ANZAHL;
+  anzahl = Math.min(anzahl, MAX_ANZAHL);
+
+  var liste = document.getElementById("liste");
+  var sprache = "de", T = TEXTE.de;
+
+  /* ---- Hoehe an die einbettende Seite melden ---- */
+  var letzteHoehe = 0;
+  function meldeHoehe() {
+    if (window.parent === window) return;
+    var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    if (!h || h === letzteHoehe) return;
+    letzteHoehe = h;
+    window.parent.postMessage({ typ: "onlang-hoehe", hoehe: h }, "*");
+  }
+  if (window.ResizeObserver) new ResizeObserver(meldeHoehe).observe(document.documentElement);
+  window.addEventListener("load", meldeHoehe);
+  window.addEventListener("resize", meldeHoehe);
+
+  /* ---- Hilfen ---- */
+  function el(tag, klasse, text) {
+    var e = document.createElement(tag);
+    if (klasse) e.className = klasse;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function hinweis(text) {
+    liste.textContent = "";
+    liste.appendChild(el("p", "hinweis", text));
+    meldeHoehe();
+  }
+  /* Relative Helligkeit 0 (schwarz) bis 1 (weiss) */
+  function helligkeit(hex) {
+    var k = [0, 2, 4].map(function (i) { var v = parseInt(hex.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2];
+  }
+  function setzeFarbe(wert) {
+    var h = String(wert || "").trim().replace(/^#/, "");
+    if (/^[0-9a-f]{3}$/i.test(h)) h = h.split("").map(function (z) { return z + z; }).join("");
+    if (!/^[0-9a-f]{6}$/i.test(h)) return;
+    document.documentElement.style.setProperty("--farbe", "#" + h);
+    document.documentElement.style.setProperty("--auf-farbe", helligkeit(h) > 0.4 ? "#111111" : "#ffffff");
+  }
+  /* Wie in der App: Tag, Monat, Jahr direkt aus dem Text, ohne Zeitzonen-Umrechnung */
+  function datumText(wert) {
+    var raw = String(wert || "").trim(), m = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/), j, mo, t;
+    if (m) { t = m[1]; mo = m[2]; j = m[3]; }
+    else { m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (!m) return raw; j = m[1]; mo = m[2]; t = m[3]; }
+    t = ("0" + t).slice(-2); mo = ("0" + mo).slice(-2);
+    if (sprache === "hu") return j + "." + mo + "." + t + ".";
+    if (sprache === "en") return mo + "/" + t + "/" + j;
+    return t + "." + mo + "." + j;
+  }
+  function kategorieText(name) {
+    var k = KATEGORIEN[name];
+    return (k && k[sprache]) || name;
+  }
+  function nurHttp(url) {
+    url = String(url || "").trim();
+    return /^https?:\/\//i.test(url) ? url : "";
+  }
+  /* Cloudinary-Bilder passend verkleinert laden */
+  function bildUrl(url, gross) {
+    url = nurHttp(url);
+    if (url.indexOf("res.cloudinary.com") !== -1 && url.indexOf("/upload/") !== -1) {
+      return url.replace("/upload/", gross ? "/upload/c_fit,w_1200,q_auto,f_auto/" : "/upload/c_fill,w_640,h_360,q_auto,f_auto/");
+    }
+    return url;
+  }
+  function youtubeId(url) {
+    var m = String(url || "").match(/(?:youtube(?:-nocookie)?\.com\/(?:(?:watch|attribution_link)?\?(?:.*&)?v=|(?:embed|shorts|live|v|e)\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : "";
+  }
+
+  /* ---- Ein Beitrag ---- */
+  function baueBeitrag(b, nr) {
+    var titel = String(b.Titel || "").trim(), text = String(b.Text || "").trim();
+    var bild = nurHttp(b.Bild_URL), video = nurHttp(b.Video_URL || b.videoUrl), yt = youtubeId(video);
+    var art = el("article", "beitrag"), kopf = el("div", "kopf"), inhalt = el("div", "inhalt");
+    var textId = "text-" + nr, offen = false, img = null, videoFertig = false;
+
+    if (bild) {
+      img = el("img", "bild");
+      img.alt = "";
+      img.loading = "lazy";
+      img.src = bildUrl(bild, false);
+      img.onerror = function () { img.remove(); img = null; meldeHoehe(); };
+      img.onload = meldeHoehe;
+      img.addEventListener("click", function () { if (!offen) umschalten(); });
+      kopf.appendChild(img);
+    }
+
+    var meta = el("div", "meta");
+    if (b.Kategorie) meta.appendChild(el("span", "kategorie", kategorieText(String(b.Kategorie).trim())));
+    var datum = datumText(b.Datum);
+    if (datum) meta.appendChild(el("span", "datum", datum));
+    inhalt.appendChild(meta);
+
+    var h = el("h3", "titel"), titelKnopf = el("button", "", titel);
+    titelKnopf.type = "button";
+    titelKnopf.setAttribute("aria-controls", textId);
+    h.appendChild(titelKnopf);
+    inhalt.appendChild(h);
+
+    var p = el("p", "text", text);
+    p.id = textId;
+    inhalt.appendChild(p);
+
+    var videoFeld = el("div", "video");
+    videoFeld.hidden = true;
+    inhalt.appendChild(videoFeld);
+
+    var mehr = el("button", "mehr", T.weiter);
+    mehr.type = "button";
+    mehr.setAttribute("aria-controls", textId);
+    inhalt.appendChild(mehr);
+
+    /* YouTube wird erst nach einem Klick geladen (Datenschutz auf der Vereinsseite) */
+    function baueVideo() {
+      if (videoFertig || !video) return;
+      videoFertig = true;
+      if (!yt) {
+        var a = el("a", "", T.videoOeffnen + " ↗");
+        a.href = video; a.target = "_blank"; a.rel = "noopener noreferrer";
+        videoFeld.appendChild(a);
+        return;
+      }
+      var knopf = el("button", "video-knopf");
+      knopf.type = "button";
+      var play = el("span", "play", "▶");
+      play.setAttribute("aria-hidden", "true");
+      knopf.appendChild(play);
+      knopf.appendChild(el("span", "", T.videoLaden));
+      knopf.addEventListener("click", function () {
+        var f = document.createElement("iframe");
+        f.src = "https://www.youtube-nocookie.com/embed/" + yt + "?rel=0&autoplay=1";
+        f.title = titel || "Video";
+        f.allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+        f.allowFullscreen = true;
+        knopf.replaceWith(f);
+        meldeHoehe();
+      });
+      videoFeld.appendChild(knopf);
+    }
+
+    function umschalten() {
+      offen = !offen;
+      art.classList.toggle("offen", offen);
+      mehr.textContent = offen ? T.weniger : T.weiter;
+      mehr.setAttribute("aria-expanded", String(offen));
+      titelKnopf.setAttribute("aria-expanded", String(offen));
+      if (img) img.src = bildUrl(bild, offen);
+      if (offen) baueVideo();
+      videoFeld.hidden = !offen || !video;
+      meldeHoehe();
+    }
+    mehr.setAttribute("aria-expanded", "false");
+    titelKnopf.setAttribute("aria-expanded", "false");
+    mehr.addEventListener("click", umschalten);
+    titelKnopf.addEventListener("click", umschalten);
+
+    kopf.appendChild(inhalt);
+    art.appendChild(kopf);
+    return art;
+  }
+
+  function zeige(daten) {
+    var branding = daten.branding || {};
+    var s = String(branding.Sprache || "de").toLowerCase();
+    sprache = TEXTE[s] ? s : "de";
+    T = TEXTE[sprache];
+    document.documentElement.lang = sprache;
+    setzeFarbe(branding.Thema_Farbe);
+
+    var beitraege = Array.isArray(daten.beitraege) ? daten.beitraege : [];
+    if (kategorie) beitraege = beitraege.filter(function (b) { return String(b.Kategorie || "").trim() === kategorie; });
+    beitraege = beitraege.slice(0, anzahl);
+
+    if (!beitraege.length) { hinweis(kategorie ? T.leerKat(kategorieText(kategorie)) : T.leer); return; }
+    liste.textContent = "";
+    beitraege.forEach(function (b, i) { liste.appendChild(baueBeitrag(b, i)); });
+    meldeHoehe();
+  }
+
+  function fehler() {
+    /* Sprache des Vereins ist hier unbekannt: Browsersprache entscheidet zwischen hu, en und de */
+    var n = String(navigator.language || "").toLowerCase().slice(0, 2);
+    hinweis((TEXTE[n] || TEXTE.de).fehler);
+  }
+
+  if (!/^[A-Z0-9_-]{1,20}$/.test(kunde)) { fehler(); return; }
+
+  var abbruch = window.AbortController ? new AbortController() : null;
+  var uhr = setTimeout(function () { if (abbruch) abbruch.abort(); }, 15000);
+  fetch("/api/proxy?action=get_bootstrap&kundenId=" + encodeURIComponent(kunde), { cache: "no-store", signal: abbruch ? abbruch.signal : undefined })
+    .then(function (r) { return r.json(); })
+    .then(function (daten) { if (daten && daten.success && daten.branding) zeige(daten); else fehler(); })
+    .catch(function (e) { console.error("[ONLANG embed]", e); fehler(); })
+    .then(function () { clearTimeout(uhr); });
+})();
+</script>
+</body>
+</html>
