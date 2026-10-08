@@ -5,6 +5,7 @@ import Tab1 from './pages/Tab1';
 import { useLanguage } from './i18n/LanguageContext';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
 import { resolveCustomerId, noCustomerText } from './utils/customer';
+import { aufFarbe, alsSchrift, istHelleFarbe } from './utils/farbe';
 
 export const BrandingContext = createContext<any>(null);
 
@@ -377,22 +378,22 @@ if (loading && !branding) {
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
           <div style={{ position: 'absolute', top: 16, left: 16 }}>
-            <LanguageSwitcher variant="light" />
+            <LanguageSwitcher variant={istHelleFarbe(themaFarbe) ? 'dark' : 'light'} />
           </div>
           <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             {loginBildUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
               <img src={loginBildUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>}
-            <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Sport App'}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('hinweis_team_login', 'Bitte mit deinem Team-Passwort einloggen')}</p>
+            <h2 style={{ color: aufFarbe(themaFarbe), fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Sport App'}</h2>
+            <p style={{ color: aufFarbe(themaFarbe, 0.65), margin: 0, fontSize: 14 }}>{t('hinweis_team_login', 'Bitte mit deinem Team-Passwort einloggen')}</p>
             <PasswordInput value={teamPassword} onChange={setTeamPassword} onEnter={handleTeamLogin} />
-            {teamError && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{teamError}</p>}
+            {teamError && <p style={{ color: istHelleFarbe(themaFarbe) ? '#8b0000' : '#ffcccc', margin: 0, fontSize: 14 }}>{teamError}</p>}
             <button onClick={handleTeamLogin} disabled={teamLoading}
-              style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
+              style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: alsSchrift(themaFarbe), fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
               {teamLoading ? t('btn_login_laeuft', 'Einloggen...') : t('btn_login', 'Einloggen')}
             </button>
             <button onClick={() => { setShowTeamLogin(false); setTeamLoginDone(true); }}
-              style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ width: '100%', padding: 11, borderRadius: 10, border: `1px solid ${aufFarbe(themaFarbe, 0.3)}`, background: 'transparent', color: aufFarbe(themaFarbe), fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t('btn_weiter_ohne_login', 'Weiter ohne Login →')}
             </button>
           </div>

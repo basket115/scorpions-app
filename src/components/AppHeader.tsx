@@ -7,6 +7,7 @@ import {
 import { refreshOutline, settingsOutline } from 'ionicons/icons';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
+import { aufFarbe, istHelleFarbe } from '../utils/farbe';
 
 interface AppHeaderProps {
   title: string;
@@ -23,12 +24,11 @@ const s: Record<string, React.CSSProperties> = {
   logo: { height: 44, width: 44, objectFit: 'contain', borderRadius: 12, background: 'rgba(255,255,255,0.15)' },
   // fontSize setzt useTitelEinpassen; Innenabstand kleiner als Ionic-Standard
   // (20px), damit der Vereinsname im Hochformat mehr Platz hat.
-  title: { color: 'white', fontWeight: 700, paddingLeft: 8, paddingRight: 8 },
+  // Schriftfarben setzt AppHeader je nach Helligkeit der Vereinsfarbe.
+  title: { fontWeight: 700, paddingLeft: 8, paddingRight: 8 },
   endSlot: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 4 },
-  partnerLabel: { fontSize: '0.5rem', color: 'rgba(255,255,255,0.7)', letterSpacing: '1px' },
+  partnerLabel: { fontSize: '0.5rem', letterSpacing: '1px' },
   sponsorLogo: { height: 28, width: 44, objectFit: 'contain', background: 'white', borderRadius: 4, padding: 2 },
-  refreshBtn: { color: 'white' },
-  adminBtn: { color: 'rgba(255,255,255,0.75)' },
 };
 
 const TITEL_MAX_PX = 17.6; // bisher 1.1rem
@@ -75,29 +75,30 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
   const { t } = useLanguage();
   const { titleRef, textRef } = useTitelEinpassen(title);
+  const farbe = themaFarbe || '#C4161C';
   return (
     <IonHeader>
-      <IonToolbar style={{ '--background': themaFarbe || '#C4161C' } as React.CSSProperties}>
+      <IonToolbar style={{ '--background': farbe } as React.CSSProperties}>
         <div slot="start" style={s.startSlot}>
           {logoUrl && <img src={logoUrl} alt="Logo" style={s.logo} />}
         </div>
-        <IonTitle ref={titleRef} style={s.title}><span ref={textRef}>{title}</span></IonTitle>
+        <IonTitle ref={titleRef} style={{ ...s.title, color: aufFarbe(farbe) }}><span ref={textRef}>{title}</span></IonTitle>
         <IonButtons slot="end">
           <div style={{ marginRight: 8 }}>
-            <LanguageSwitcher variant="light" />
+            <LanguageSwitcher variant={istHelleFarbe(farbe) ? 'dark' : 'light'} />
           </div>
           {sponsorLogoUrl && (
             <div style={s.endSlot}>
-              <span style={s.partnerLabel}>{t('lbl_partner', 'PARTNER')}</span>
+              <span style={{ ...s.partnerLabel, color: aufFarbe(farbe, 0.7) }}>{t('lbl_partner', 'PARTNER')}</span>
               <img src={sponsorLogoUrl} alt="Sponsor" style={s.sponsorLogo} />
             </div>
           )}
           {onAdminClick && (
-            <IonButton onClick={onAdminClick} style={s.adminBtn} title={t('lbl_admin_tooltip', 'Admin')}>
+            <IonButton onClick={onAdminClick} style={{ color: aufFarbe(farbe, 0.75) }} title={t('lbl_admin_tooltip', 'Admin')}>
               <IonIcon icon={settingsOutline} />
             </IonButton>
           )}
-          <IonButton onClick={() => onRefresh?.()} disabled={loading} style={s.refreshBtn}>
+          <IonButton onClick={() => onRefresh?.()} disabled={loading} style={{ color: aufFarbe(farbe) }}>
             {loading ? <IonSpinner name="crescent" /> : <IonIcon icon={refreshOutline} />}
           </IonButton>
         </IonButtons>

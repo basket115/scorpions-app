@@ -6,6 +6,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { translateKategorie } from '../i18n/translations';
 import { apiGet } from '../utils/api';
 import { resolveCustomerId } from '../utils/customer';
+import { aufFarbe, alsSchrift } from '../utils/farbe';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -70,7 +71,7 @@ const BildUploadButton: React.FC<{ onUploaded: (url: string) => void; themaFarbe
     <div style={{ marginBottom: 8 }}>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
       <button onClick={() => inputRef.current?.click()} disabled={uploading}
-        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `2px dashed #ccc`, background: uploading ? '#f5f5f5' : 'white', color: uploading ? '#aaa' : themaFarbe, fontWeight: 700, fontSize: 14, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `2px dashed #ccc`, background: uploading ? '#f5f5f5' : 'white', color: uploading ? '#aaa' : alsSchrift(themaFarbe), fontWeight: 700, fontSize: 14, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         {uploading ? t('status_wird_hochgeladen', '⏳ Bild wird hochgeladen...') : t('btn_bild_hochladen', '📁 Bild vom Computer hochladen')}
       </button>
       {error && <p style={{ color: 'red', fontSize: 13, margin: '4px 0 0' }}>{error}</p>}
@@ -251,7 +252,7 @@ const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onCl
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('lbl_bild_url_anleitung', '📸 Bild-URL Anleitung')}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
         </div>
-        <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>{t('btn_verstanden', 'Verstanden ✓')}</button>
+        <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: aufFarbe(themaFarbe), fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>{t('btn_verstanden', 'Verstanden ✓')}</button>
       </div>
     </div>
   );
@@ -327,7 +328,7 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
-          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: aufFarbe(themaFarbe), fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
             {saving ? t('btn_speichern_laeuft', 'Speichern...') : t('btn_speichern', '💾 Speichern')}
           </button>
         </div>
@@ -349,19 +350,19 @@ const KategorienDropdown: React.FC<{
   return (
     <div style={{ position: 'relative', marginBottom: 12 }}>
       <button onClick={() => setOpen(o => !o)}
-        style={{ width: "100%", padding: "14px 18px", borderRadius: 10, border: `2px solid ${themaFarbe}`, background: "white", color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
+        style={{ width: "100%", padding: "14px 18px", borderRadius: 10, border: `2px solid ${themaFarbe}`, background: "white", color: alsSchrift(themaFarbe), fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
         <span>{label}</span>
-        <span style={{ color: themaFarbe, fontSize: 18 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ color: alsSchrift(themaFarbe), fontSize: 18 }}>{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 100, overflow: 'hidden', marginTop: 4 }}>
           <div onClick={() => { onSelect(''); setOpen(false); }}
-            style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === '' ? 700 : 400, color: selected === '' ? themaFarbe : '#111', background: selected === '' ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
+            style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === '' ? 700 : 400, color: selected === '' ? alsSchrift(themaFarbe) : '#111', background: selected === '' ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
             {t('lbl_alle_abteilungen', 'Alle Abteilungen')}
           </div>
           {kategorien.map(k => (
             <div key={k} onClick={() => { onSelect(k); setOpen(false); }}
-              style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === k ? 700 : 400, color: selected === k ? themaFarbe : '#111', background: selected === k ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
+              style={{ padding: '12px 16px', cursor: 'pointer', fontWeight: selected === k ? 700 : 400, color: selected === k ? alsSchrift(themaFarbe) : '#111', background: selected === k ? '#f5f5f5' : 'white', borderBottom: '1px solid #f0f0f0' }}>
               {translateKategorie(k, t)}
             </div>
           ))}
@@ -679,10 +680,10 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, backgroundColor: '#f0f0f0' }}>
         {teamRolle && (
           <div style={{ background: themaFarbe, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>
+            <span style={{ color: aufFarbe(themaFarbe), fontWeight: 700, fontSize: 14 }}>
               {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : [t('lbl_rolle_unteradmin', 'Unteradmin'), translateKategorie(teamMannschaft, t)].filter(Boolean).join(' · ')}
             </span>
-            <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
+            <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: `1px solid ${aufFarbe(themaFarbe, 0.4)}`, color: aufFarbe(themaFarbe), borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
           </div>
         )}
         {demoTage && (
@@ -716,12 +717,12 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
         {canPost && !showForm && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: 'white', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>{t('btn_neuer_beitrag', '⊕ NEUEN BEITRAG ERSTELLEN')}</button>
+            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: aufFarbe(themaFarbe), fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>{t('btn_neuer_beitrag', '⊕ NEUEN BEITRAG ERSTELLEN')}</button>
           </div>
         )}
         {canPost && showForm && (
           <div style={{ background: '#f9f9f9', borderRadius: 12, padding: 16, marginBottom: 20, border: '1px solid #ddd' }}>
-            <h3 style={{ marginTop: 0, color: themaFarbe }}>{t('title_neuer_beitrag', '📝 Neuer Beitrag')}</h3>
+            <h3 style={{ marginTop: 0, color: alsSchrift(themaFarbe) }}>{t('title_neuer_beitrag', '📝 Neuer Beitrag')}</h3>
             <input placeholder={t('lbl_titel', 'Titel')} value={titel} onChange={(e: any) => setTitel(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
             <textarea placeholder={t('lbl_text', 'Text')} value={text} onChange={(e: any) => setText(e.target.value)} rows={4} style={{ width: '100%', padding: 10, marginBottom: 8, borderRadius: 8, border: '1px solid #ccc', boxSizing: 'border-box' as const, color: '#111' }} />
             <div style={{ position: 'relative', marginBottom: 8 }}>
@@ -741,7 +742,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             {success && <p style={{ color: 'green' }}>{success}</p>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ccc', backgroundColor: 'white', cursor: 'pointer', color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
-              <button onClick={handleSubmit} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: themaFarbe, color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>{saving ? t('btn_publish_laeuft', 'Speichern...') : t('btn_publish', 'Veröffentlichen')}</button>
+              <button onClick={handleSubmit} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: themaFarbe, color: aufFarbe(themaFarbe), fontWeight: 'bold', cursor: 'pointer' }}>{saving ? t('btn_publish_laeuft', 'Speichern...') : t('btn_publish', 'Veröffentlichen')}</button>
             </div>
           </div>
         )}
@@ -766,7 +767,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
               <div key={bId || i} style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', position: 'relative' }}>
                 {darfLoeschen && (
                   <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6, zIndex: 1 }}>
-                    <button onClick={() => setEditBeitrag(beitrag)} style={{ background: themaFarbe, color: 'white', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 13, cursor: 'pointer', fontWeight: 'bold' }}>✏️</button>
+                    <button onClick={() => setEditBeitrag(beitrag)} style={{ background: themaFarbe, color: aufFarbe(themaFarbe), border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 13, cursor: 'pointer', fontWeight: 'bold' }}>✏️</button>
                     <button onClick={() => handleDelete(beitrag)} disabled={isDeleting} style={{ background: isDeleting ? '#ccc' : '#ff4444', color: 'white', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 13, cursor: isDeleting ? 'default' : 'pointer', fontWeight: 'bold' }}>{isDeleting ? '...' : '🗑️'}</button>
                   </div>
                 )}
@@ -799,7 +800,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   </div>
                 )}
                 {buttonLabel && buttonUrl && (
-                  <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: 'white', borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
+                  <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: aufFarbe(themaFarbe), borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
                 )}
                 <SocialBar b={b} />
                 {kundenId && <SponsorBanner kundenId={kundenId} initialSponsoren={bootstrapSponsoren} startIndex={i} />}
@@ -811,10 +812,10 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
       {/* Footer */}
       <div style={{ background: themaFarbe, padding: '16px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
-        <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_nutzungsbedingungen', '📋 Nutzungsbedingungen')}</a>
-        <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_bildverwaltung', '📸 Bildverwaltung')}</a>
-        <a href="mailto:info@onlang.de" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>✉️ info@onlang.de</a>
-        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600 }}>© 2026 ONLANG</span>
+        <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: aufFarbe(themaFarbe, 0.85), fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_nutzungsbedingungen', '📋 Nutzungsbedingungen')}</a>
+        <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: aufFarbe(themaFarbe, 0.85), fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_bildverwaltung', '📸 Bildverwaltung')}</a>
+        <a href="mailto:info@onlang.de" style={{ color: aufFarbe(themaFarbe, 0.85), fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>✉️ info@onlang.de</a>
+        <span style={{ color: aufFarbe(themaFarbe, 0.5), fontSize: 13, fontWeight: 600 }}>© 2026 ONLANG</span>
       </div>
     </div>
   );
