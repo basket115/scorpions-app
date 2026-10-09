@@ -26,7 +26,9 @@
   .hinweis { margin: 0; padding: 28px 12px; text-align: center; color: var(--grau); }
   .beitrag { background: #fff; border: 1px solid var(--linie); border-left: 4px solid var(--farbe); border-radius: 10px; overflow: hidden; }
   .kopf { display: flex; flex-direction: column; }
-  .bild { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #f1f3f6; cursor: pointer; }
+  /* Bild immer ueber dem Text, volle Kartenbreite, eigenes Seitenverhaeltnis, kein Zuschnitt.
+     Die oberen Ecken rundet die Karte ab (overflow: hidden). */
+  .bild { display: block; width: 100%; height: auto; background: #f1f3f6; cursor: pointer; }
   .inhalt { padding: 14px 16px 16px; min-width: 0; flex: 1; }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--grau); margin-bottom: 6px; }
   .kategorie { background: var(--farbe); color: var(--auf-farbe); font-weight: 700; font-size: 12px; letter-spacing: .02em; padding: 2px 9px; border-radius: 999px; }
@@ -42,13 +44,10 @@
   .video-knopf span.play { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background: var(--farbe); color: var(--auf-farbe); flex: none; }
   .video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; }
   .video a { color: var(--text); font-weight: 700; }
-  /* Ab Tablet-Breite: Bild links, Text rechts. Aufgeklappt wieder Bild oben in voller Breite. */
   @media (min-width: 560px) {
-    .beitrag:not(.offen) .kopf { flex-direction: row; align-items: stretch; }
-    .beitrag:not(.offen) .bild { width: 220px; flex: none; aspect-ratio: auto; height: auto; min-height: 150px; max-height: 190px; }
     .titel { font-size: 19px; }
   }
-  .beitrag.offen .bild { aspect-ratio: auto; max-height: 70vh; object-fit: contain; cursor: default; }
+  .beitrag.offen .bild { cursor: default; }
 </style>
 </head>
 <body>
@@ -139,11 +138,11 @@
     url = String(url || "").trim();
     return /^https?:\/\//i.test(url) ? url : "";
   }
-  /* Cloudinary-Bilder passend verkleinert laden */
-  function bildUrl(url, gross) {
+  /* Cloudinary-Bilder verkleinert laden: hoechstens 1200 px breit, ganzes Bild, kein Zuschnitt */
+  function bildUrl(url) {
     url = nurHttp(url);
     if (url.indexOf("res.cloudinary.com") !== -1 && url.indexOf("/upload/") !== -1) {
-      return url.replace("/upload/", gross ? "/upload/c_fit,w_1200,q_auto,f_auto/" : "/upload/c_fill,w_640,h_360,q_auto,f_auto/");
+      return url.replace("/upload/", "/upload/c_limit,w_1200,q_auto,f_auto/");
     }
     return url;
   }
@@ -163,7 +162,7 @@
       img = el("img", "bild");
       img.alt = "";
       img.loading = "lazy";
-      img.src = bildUrl(bild, false);
+      img.src = bildUrl(bild);
       img.onerror = function () { img.remove(); img = null; meldeHoehe(); };
       img.onload = meldeHoehe;
       img.addEventListener("click", function () { if (!offen) umschalten(); });
@@ -229,7 +228,6 @@
       mehr.textContent = offen ? T.weniger : T.weiter;
       mehr.setAttribute("aria-expanded", String(offen));
       titelKnopf.setAttribute("aria-expanded", String(offen));
-      if (img) img.src = bildUrl(bild, offen);
       if (offen) baueVideo();
       videoFeld.hidden = !offen || !video;
       meldeHoehe();
