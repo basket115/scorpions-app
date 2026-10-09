@@ -270,7 +270,7 @@
 
   var abbruch = window.AbortController ? new AbortController() : null;
   var uhr = setTimeout(function () { if (abbruch) abbruch.abort(); }, 15000);
-  fetch("/api/proxy?action=get_bootstrap&kundenId=" + encodeURIComponent(kunde), { cache: "no-store", signal: abbruch ? abbruch.signal : undefined })
+  fetch("/api/proxy?action=get_bootstrap&kanal=website&kundenId=" + encodeURIComponent(kunde), { cache: "no-store", signal: abbruch ? abbruch.signal : undefined })
     .then(function (r) { return r.json(); })
     .then(function (daten) { if (daten && daten.success && daten.branding) zeige(daten); else fehler(); })
     .catch(function (e) { console.error("[ONLANG embed]", e); fehler(); })

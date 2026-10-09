@@ -1,6 +1,6 @@
 import type { Context } from "https://edge.netlify.com";
 import { fetchSupabaseBranding, istSupabaseKunde } from "./lib/supabaseBranding.ts";
-import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
+import { beitragsKanal, fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
 import {
@@ -409,10 +409,12 @@ export default async (request: Request, context: Context) => {
 
     if (action === "get_bootstrap") {
       const kundenId = url.searchParams.get("kundenId") || "";
+      // Das Beitragsfenster /embed fragt mit kanal=website, die App ohne (= app).
+      const kanal = beitragsKanal(url.searchParams.get("kanal"));
       const [imSupabase, supabaseBranding, supabaseBeitraege, supabaseSponsoren] = await Promise.all([
         istSupabaseKunde(kundenId),
         fetchSupabaseBranding(kundenId),
-        fetchSupabaseBeitraege(kundenId),
+        fetchSupabaseBeitraege(kundenId, kanal),
         fetchSupabaseSponsoren(kundenId),
       ]);
 
