@@ -141,8 +141,11 @@ export default async (request: Request, context: Context) => {
     }
   }
 
-  const startUrl = kundenId ? `/?kunde=${encodeURIComponent(kundenId)}` : "/";
-  const appId = kundenId ? `/app/${encodeURIComponent(kundenId)}` : "/app/onlang";
+  // Ohne Verein kein start_url und keine id (undefined faellt im JSON weg):
+  // dann gilt die gerade geoeffnete Adresse als Startadresse, statt "/"
+  // ohne Verein.
+  const startUrl = kundenId ? `/?kunde=${encodeURIComponent(kundenId)}` : undefined;
+  const appId = kundenId ? `/app/${encodeURIComponent(kundenId)}` : undefined;
 
   const manifest = {
     id: appId,
