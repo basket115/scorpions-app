@@ -39,7 +39,9 @@
   .beitrag:not(.offen) .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
   .mehr { margin-top: 10px; background: #fff; color: var(--text); border: 1.5px solid var(--farbe); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
   .mehr:hover { background: var(--farbe); color: var(--auf-farbe); }
-  .video { margin-top: 14px; }
+  .text a { color: inherit; text-decoration: underline; }
+  .video { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .video video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; background: #10151c; }
   .video-knopf { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; aspect-ratio: 16 / 9; background: #10151c; color: #fff; border: 0; border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer; padding: 12px; text-align: center; }
   .video-knopf span.play { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background: var(--farbe); color: var(--auf-farbe); flex: none; }
   .video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; }
@@ -151,10 +153,109 @@
     return m ? m[1] : "";
   }
 
+  /* ---- Textformat der Beitraege (wie das ONLANG Studio speichert) ----
+     Reiner Text mit fuenf Auszeichnungen, KEIN HTML: Absatz (Leerzeile),
+     **fett**, _kursiv_, [Text](https://...) und jede Adresse mit http://,
+     https:// oder www., Video = eine Zeile nur mit YouTube- oder MP4-Link.
+     Der Text wird nur zerlegt und als Text-Knoten eingesetzt, nie als HTML:
+     was wie HTML aussieht, erscheint als Text. Gleiche Regeln wie in der App
+     (src/utils/textformat.ts) und in Template 7. */
+  function videoArt(zeile) {
+    var u = String(zeile || "").trim();
+    if (!/^https?:\/\/[^\s<>"']+$/i.test(u)) return "";
+    if (youtubeId(u)) return "youtube";
+    return /\.mp4(\?[^\s]*)?$/i.test(u) ? "mp4" : "";
+  }
+  function ohneEnde(adresse) {
+    var ende = (adresse.match(/[.,;:!?)\]"]+$/) || [""])[0];
+    return [adresse.slice(0, adresse.length - ende.length), ende];
+  }
+  /* Eine Zeile in Stuecke { text, fett, kursiv, adresse } */
+  function zerlegeZeile(zeile) {
+    var links = [], stuecke = [];
+    function merke(adresse, text) { links.push({ adresse: adresse, text: text }); return "\u0000" + (links.length - 1) + "\u0000"; }
+    var s = String(zeile == null ? "" : zeile).replace(/\u0000/g, "");
+    s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)<>]+)\)/gi, function (_m, text, adresse) { return merke(adresse, text); });
+    s = s.replace(/https?:\/\/[^\s<>‹›\u0000]+/gi, function (adresse) {
+      var teile = ohneEnde(adresse);
+      return teile[0].length > 8 ? merke(teile[0], teile[0]) + teile[1] : adresse;
+    });
+    s = s.replace(/(^|[\s(„«›"])(www\.[a-z0-9äöüß-]+(?:\.[a-z0-9äöüß-]+)+[^\s<>‹›\u0000]*)/gi, function (_m, davor, adresse) {
+      var teile = ohneEnde(adresse);
+      return davor + merke("https://" + teile[0], teile[0]) + teile[1];
+    });
+    function lege(text, fett, kursiv) {
+      text.split(/(\u0000\d+\u0000)/).forEach(function (teil) {
+        if (!teil) return;
+        var m = teil.match(/^\u0000(\d+)\u0000$/), link = m ? links[Number(m[1])] : null;
+        stuecke.push({ text: link ? link.text : teil, fett: fett, kursiv: kursiv, adresse: link ? link.adresse : "" });
+      });
+    }
+    function mitKursiv(text, fett) {
+      var muster = /(^|[\s(„"«])_([^_\n]+?)_(?=$|[\s.,;:!?)“"»])/g, pos = 0, m = muster.exec(text);
+      while (m) {
+        lege(text.slice(pos, m.index) + m[1], fett, false);
+        lege(m[2], fett, true);
+        pos = m.index + m[0].length;
+        m = muster.exec(text);
+      }
+      lege(text.slice(pos), fett, false);
+    }
+    var fettMuster = /\*\*([^*\n]+?)\*\*/g, pos = 0, m = fettMuster.exec(s);
+    while (m) {
+      mitKursiv(s.slice(pos, m.index), false);
+      mitKursiv(m[1], true);
+      pos = m.index + m[0].length;
+      m = fettMuster.exec(s);
+    }
+    mitKursiv(s.slice(pos), false);
+    return stuecke;
+  }
+  /* Der Text ohne Video-Zeilen: { zeilen: [...], videos: [Adressen] } */
+  function trenneVideos(text) {
+    var zeilen = [], videos = [];
+    String(text || "").replace(/\r\n?/g, "\n").split("\n").forEach(function (zeile) {
+      if (videoArt(zeile)) videos.push(zeile.trim()); else zeilen.push(zeile);
+    });
+    return { zeilen: zeilen, videos: videos };
+  }
+  /* Kurztext fuer die geschlossene Karte: ohne Auszeichnungen */
+  function ohneTextformat(zeilen) {
+    return zeilen.join("\n")
+      .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)<>]+)\)/gi, "$1")
+      .replace(/\*\*([^*\n]+?)\*\*/g, "$1")
+      .replace(/(^|[\s(„"«])_([^_\n]+?)_(?=$|[\s.,;:!?)“"»])/gm, "$1$2")
+      .replace(/\n{3,}/g, "\n\n").trim();
+  }
+  /* Setzt den ganzen Text mit fett, kursiv und Links in das Element */
+  function setzeText(ziel, zeilen) {
+    ziel.textContent = "";
+    var leer = 0, begonnen = false;
+    zeilen.forEach(function (zeile) {
+      if (!zeile.trim()) { leer++; return; }
+      if (begonnen) ziel.appendChild(document.createTextNode(leer ? "\n\n" : "\n"));
+      begonnen = true; leer = 0;
+      zerlegeZeile(zeile).forEach(function (s) {
+        var knoten = document.createTextNode(s.text), huelle;
+        if (s.kursiv) { huelle = document.createElement("em"); huelle.appendChild(knoten); knoten = huelle; }
+        if (s.fett) { huelle = document.createElement("strong"); huelle.appendChild(knoten); knoten = huelle; }
+        if (s.adresse && /^https?:\/\//i.test(s.adresse)) {
+          huelle = document.createElement("a");
+          huelle.href = s.adresse; huelle.target = "_blank"; huelle.rel = "noopener noreferrer";
+          huelle.appendChild(knoten); knoten = huelle;
+        }
+        ziel.appendChild(knoten);
+      });
+    });
+  }
+
   /* ---- Ein Beitrag ---- */
   function baueBeitrag(b, nr) {
-    var titel = String(b.Titel || "").trim(), text = String(b.Text || "").trim();
-    var bild = nurHttp(b.Bild_URL), video = nurHttp(b.Video_URL || b.videoUrl), yt = youtubeId(video);
+    var titel = String(b.Titel || "").trim(), getrennt = trenneVideos(String(b.Text || "").trim());
+    var text = ohneTextformat(getrennt.zeilen);
+    /* Videos: das eigene Feld aus der App und jede Video-Zeile im Text */
+    var bild = nurHttp(b.Bild_URL), videos = getrennt.videos.slice(), eigenes = nurHttp(b.Video_URL || b.videoUrl);
+    if (eigenes && videos.indexOf(eigenes) === -1) videos.unshift(eigenes);
     var art = el("article", "beitrag"), kopf = el("div", "kopf"), inhalt = el("div", "inhalt");
     var textId = "text-" + nr, offen = false, img = null, videoFertig = false;
 
@@ -194,10 +295,22 @@
     mehr.setAttribute("aria-controls", textId);
     inhalt.appendChild(mehr);
 
-    /* YouTube wird erst nach einem Klick geladen (Datenschutz auf der Vereinsseite) */
+    /* YouTube wird erst nach einem Klick geladen (Datenschutz auf der Vereinsseite).
+       Ein MP4 laedt erst beim Abspielen (preload none). */
     function baueVideo() {
-      if (videoFertig || !video) return;
+      if (videoFertig || !videos.length) return;
       videoFertig = true;
+      videos.forEach(baueEinVideo);
+    }
+    function baueEinVideo(video) {
+      var yt = youtubeId(video);
+      if (!yt && videoArt(video) === "mp4") {
+        var film = document.createElement("video");
+        film.src = video; film.controls = true; film.preload = "none";
+        film.setAttribute("playsinline", "");
+        videoFeld.appendChild(film);
+        return;
+      }
       if (!yt) {
         var a = el("a", "", T.videoOeffnen + " ↗");
         a.href = video; a.target = "_blank"; a.rel = "noopener noreferrer";
@@ -228,8 +341,10 @@
       mehr.textContent = offen ? T.weniger : T.weiter;
       mehr.setAttribute("aria-expanded", String(offen));
       titelKnopf.setAttribute("aria-expanded", String(offen));
+      /* Offen: der ganze Text mit fett, kursiv und Links. Zu: der Kurztext. */
+      if (offen) setzeText(p, getrennt.zeilen); else p.textContent = text;
       if (offen) baueVideo();
-      videoFeld.hidden = !offen || !video;
+      videoFeld.hidden = !offen || !videos.length;
       meldeHoehe();
     }
     mehr.setAttribute("aria-expanded", "false");
