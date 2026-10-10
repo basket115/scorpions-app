@@ -50,6 +50,14 @@ const GESPERRTE_AKTIONEN = new Set([
   "update_sponsor",
 ]);
 
+// Titel und Text eines Beitrags werden als reiner Text gespeichert. Spitze
+// Klammern werden beim Speichern durch aehnliche, harmlose Zeichen ersetzt
+// - genauso wie im ONLANG Studio (Edge Function studio-beitrag). So kann
+// ein Beitrag nie HTML enthalten, egal welche Seite ihn spaeter anzeigt.
+function ohneSpitzeKlammern(wert: string): string {
+  return wert.replace(/</g, "‹").replace(/>/g, "›");
+}
+
 function nichtErlaubt(): Response {
   return new Response(
     JSON.stringify({ success: false, error: "Aktion nicht erlaubt" }),
@@ -173,8 +181,8 @@ export default async (request: Request, context: Context) => {
       const kundenId = String(body?.kundenId ?? "").trim();
       const teamId = String(body?.teamId ?? "").trim();
       const passwort = String(body?.passwort ?? "");
-      const titel = String(body?.titel ?? "").trim();
-      const text = String(body?.text ?? "").trim();
+      const titel = ohneSpitzeKlammern(String(body?.titel ?? "").trim());
+      const text = ohneSpitzeKlammern(String(body?.text ?? "").trim());
 
       if (!titel || !text) {
         return new Response(
@@ -266,8 +274,8 @@ export default async (request: Request, context: Context) => {
       const teamId = String(body?.teamId ?? "").trim();
       const passwort = String(body?.passwort ?? "");
       const id = String(body?.id ?? "").trim();
-      const titel = String(body?.titel ?? "").trim();
-      const text = String(body?.text ?? "").trim();
+      const titel = ohneSpitzeKlammern(String(body?.titel ?? "").trim());
+      const text = ohneSpitzeKlammern(String(body?.text ?? "").trim());
 
       if (!id) {
         return new Response(
