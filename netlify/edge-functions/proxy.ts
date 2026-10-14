@@ -12,8 +12,15 @@ import {
   ladeVereinsKategorien,
 } from "./lib/supabaseBeitraegeSchreiben.ts";
 import { filterBranding } from "./lib/brandingFilter.ts";
+import {
+  brandingVollstaendig,
+  FEHLER_VEREINSNAME,
+  leseFehler,
+  type LeseFehler,
+} from "./lib/supabaseAbruf.ts";
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec"; // umgestellt auf die bereits reparierte, bewiesen aktuelle Bereitstellung
+// Alle Daten kommen nur aus Supabase. Es gibt keinen GAS-Rueckfall mehr
+// (alle Kunden stehen in Supabase, Entscheidung 14.10.2026).
 
 const RESPONSE_HEADERS = {
   "Content-Type": "application/json",
@@ -26,22 +33,9 @@ const RESPONSE_HEADERS = {
   "Expires": "0",
 };
 
-// Aktionen, die der Proxy an GAS weiterreichen darf. Enthaelt alle
-// Aktionen, die das Frontend (src/) ueber /api/proxy aufruft und die ganz
-// oder als Rueckfall an GAS gehen. Alles andere wird abgelehnt.
-const GAS_ERLAUBTE_AKTIONEN = new Set([
-  "get_bootstrap",
-  "get_branding",
-  "get_beitraege",
-  "get_sponsors",
-  "checkTeamLogin",
-  "getTeamRole",
-]);
-
-// Team-Zugaenge und Passwoerter werden nie ueber den Proxy verwaltet -
-// GAS wuerde hier u. a. Passwoerter im Klartext zurueckgeben. Sponsoren
-// werden nur im Admin-Panel gepflegt (Supabase) - update_sponsor wuerde
-// ohne Anmeldung ins GAS-Sheet schreiben.
+// Team-Zugaenge und Passwoerter werden nie ueber den Proxy verwaltet.
+// Sponsoren werden nur im Admin-Panel gepflegt (Supabase). Jede Aktion,
+// die unten nicht ausdruecklich behandelt wird, ist ohnehin abgelehnt.
 const GESPERRTE_AKTIONEN = new Set([
   "get_team_zugaenge",
   "add_team_zugang",
@@ -69,90 +63,28 @@ function jsonAntwort(daten: unknown): Response {
   return new Response(JSON.stringify(daten), { status: 200, headers: RESPONSE_HEADERS });
 }
 
-function proxyFehler(): Response {
+// Kunde unbekannt (404) oder Supabase auch beim zweiten Versuch nicht
+// erreichbar (503): klare Fehlermeldung statt leerer Daten.
+function fehlerAntwort(fehler: LeseFehler, kundenId: string): Response {
+  if (fehler.status === 503) console.error("[Proxy]", fehler.error, kundenId);
   return new Response(
-    JSON.stringify({ success: false, error: "Proxy Fehler" }),
-    { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+    JSON.stringify({ success: false, error: fehler.error }),
+    { status: fehler.status, headers: RESPONSE_HEADERS }
   );
 }
 
-// WICHTIG: cache: "no-store" verhindert, dass Netlify/Deno diese
-// Anfrage an Google selbst zwischenspeichert (Ursache fuer veraltete
-// Beitragslisten nach einer Freigabe im Studio).
-function gasAbfragen(targetUrl: string, method: string): Promise<Response> {
-  return fetch(targetUrl, {
-    method,
-    headers: { "User-Agent": "Netlify-Edge-Proxy/1.0" },
-    redirect: "follow",
-    cache: "no-store",
-    signal: AbortSignal.timeout(6000),
-  });
-}
-
-// Reicht die GAS-Antwort unveraendert als Text durch.
-async function gasDurchreichen(targetUrl: string, method: string): Promise<Response> {
-  const response = await gasAbfragen(targetUrl, method);
-  const data = await response.text();
-  return new Response(data, { status: 200, headers: RESPONSE_HEADERS });
-}
-
-// get_bootstrap ueber GAS. Optional vorhandene Supabase-Teile (Branding,
-// Beitraege) werden wie bisher in die GAS-Antwort uebernommen; faellt GAS
-// aus, bekommt die App wenigstens das Supabase-Branding.
-async function bootstrapUeberGas(
-  targetUrl: string,
-  method: string,
-  supabaseBranding: Record<string, unknown> | null,
-  supabaseBeitraege: Record<string, unknown>[] | null
-): Promise<Response> {
-  let data: any = null;
-  try {
-    const response = await gasAbfragen(targetUrl, method);
-    try {
-      data = await response.json();
-    } catch (parseError) {
-      console.error("[Proxy] GAS-Antwort nicht als JSON lesbar", parseError);
-      data = null;
-    }
-  } catch (gasError) {
-    console.error("[Proxy] GAS-Fetch fehlgeschlagen", gasError);
-  }
-
-  if (data) {
-    if (supabaseBranding && data.branding) {
-      // Nur die aus Supabase uebersetzten Felder ueberschreiben - alle
-      // anderen Branding-Felder bleiben unveraendert aus GAS.
-      Object.assign(data.branding, supabaseBranding);
-    }
-    if (data.branding) {
-      // Nur erlaubte Felder an den Browser - "Passwort" u. a. fallen weg.
-      data.branding = filterBranding(data.branding);
-    }
-    if (supabaseBeitraege) {
-      data.beitraege = supabaseBeitraege;
-    }
-    return jsonAntwort(data);
-  }
-
-  if (supabaseBranding) {
-    // GAS nicht verfuegbar, aber Supabase-Branding da: App bekommt
-    // wenigstens das Branding statt komplett zu scheitern.
-    return jsonAntwort({
-      success: true,
-      branding: filterBranding(supabaseBranding),
-      beitraege: supabaseBeitraege ?? [],
-      sponsoren: [],
-      gasUnavailable: true,
-    });
-  }
-
-  return proxyFehler();
+// Branding ohne Vereinsnamen gilt nicht als Erfolg (sonst zeigte die App
+// "Sport App" ohne Farbe und Logo).
+function vereinsnameFehlt(kundenId: string): Response {
+  console.error("[Proxy]", FEHLER_VEREINSNAME, kundenId);
+  return new Response(
+    JSON.stringify({ success: false, error: FEHLER_VEREINSNAME }),
+    { status: 500, headers: RESPONSE_HEADERS }
+  );
 }
 
 export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
-  const params = url.searchParams.toString();
-  const targetUrl = `${SCRIPT_URL}${params ? '?' + params : ''}`;
   const action = url.searchParams.get("action");
 
   try {
@@ -161,9 +93,7 @@ export default async (request: Request, context: Context) => {
     }
 
     if (action === "beitragErstellen") {
-      // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
-      // jeder GAS-Anfrage, damit nichts an GAS geht. Kein
-      // GAS-Rueckfall bei Fehlern.
+      // Schreibaktion laeuft nur gegen Supabase.
       if (request.method !== "POST") {
         return new Response(
           JSON.stringify({ success: false, error: "Nur POST erlaubt" }),
@@ -253,9 +183,7 @@ export default async (request: Request, context: Context) => {
     }
 
     if (action === "beitragBearbeiten") {
-      // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
-      // jeder GAS-Anfrage, damit nichts an GAS geht. Kein
-      // GAS-Rueckfall bei Fehlern.
+      // Schreibaktion laeuft nur gegen Supabase.
       if (request.method !== "POST") {
         return new Response(
           JSON.stringify({ success: false, error: "Nur POST erlaubt" }),
@@ -339,9 +267,8 @@ export default async (request: Request, context: Context) => {
     }
 
     if (action === "beitragLoeschen") {
-      // Schreibaktion laeuft NUR gegen Supabase - dieser Zweig greift vor
-      // jeder GAS-Anfrage, damit nichts an GAS geht. Kein
-      // GAS-Rueckfall bei Fehlern. Geloescht wird nur als Markierung.
+      // Schreibaktion laeuft nur gegen Supabase. Geloescht wird nur als
+      // Markierung.
       if (request.method !== "POST") {
         return new Response(
           JSON.stringify({ success: false, error: "Nur POST erlaubt" }),
@@ -409,11 +336,9 @@ export default async (request: Request, context: Context) => {
       );
     }
 
-    // Leseaktionen: Fuer Kunden, die in Supabase gefuehrt werden
-    // (istSupabaseKunde === true), antwortet der Proxy nur aus Supabase und
-    // wartet nicht auf GAS. Alle anderen Kunden laufen wie bisher ueber GAS.
-    // GAS wird nur noch dort angefragt, wo es gebraucht wird - nie parallel
-    // "auf Vorrat".
+    // Leseaktionen: nur aus Supabase. Jede Aktion prueft zuerst, ob es den
+    // Kunden in Supabase gibt (sonst 404 "Kunde nicht gefunden"). Scheitert
+    // ein Abruf auch beim zweiten Versuch, kommt 503 mit Fehlermeldung.
 
     if (action === "get_bootstrap") {
       const kundenId = url.searchParams.get("kundenId") || "";
@@ -426,51 +351,35 @@ export default async (request: Request, context: Context) => {
         fetchSupabaseSponsoren(kundenId),
       ]);
 
-      if (imSupabase === true && supabaseBranding && supabaseBeitraege && supabaseSponsoren) {
-        // settings, teams, studioSponsor und meta liest die App nicht -
-        // deshalb kein Warten auf GAS.
-        return jsonAntwort({
-          success: true,
-          kundenId,
-          branding: filterBranding(supabaseBranding),
-          beitraege: supabaseBeitraege,
-          sponsors: supabaseSponsoren,
-        });
-      }
+      const fehler = leseFehler(imSupabase, [supabaseBranding, supabaseBeitraege, supabaseSponsoren]);
+      if (fehler) return fehlerAntwort(fehler, kundenId);
 
-      if (imSupabase === false) {
-        // Kein Supabase-Kunde: unveraendert ueber GAS.
-        return await bootstrapUeberGas(targetUrl, request.method, null, null);
-      }
+      const branding = filterBranding(supabaseBranding);
+      if (!brandingVollstaendig(branding)) return vereinsnameFehlt(kundenId);
 
-      // Technischer Fehler bei Supabase: bisheriger Weg (GAS + die
-      // Supabase-Teile, die geantwortet haben). Beitraege nur uebernehmen,
-      // wenn es welche gibt - eine leere Liste darf die GAS-Beitraege
-      // nicht verdraengen, solange unklar ist, ob der Kunde in Supabase ist.
-      const beitraegeFuerMerge =
-        imSupabase === true || (supabaseBeitraege && supabaseBeitraege.length) ? supabaseBeitraege : null;
-      return await bootstrapUeberGas(targetUrl, request.method, supabaseBranding, beitraegeFuerMerge);
+      return jsonAntwort({
+        success: true,
+        kundenId,
+        branding,
+        beitraege: supabaseBeitraege,
+        sponsors: supabaseSponsoren,
+      });
     }
 
     if (action === "get_branding") {
-      // GAS-Antwort nie ungefiltert durchreichen: das Branding wird auf
-      // die erlaubten Felder reduziert. Nicht lesbares JSON wird nicht
-      // weitergegeben, weil es geheime Felder enthalten koennte.
-      const response = await gasAbfragen(targetUrl, request.method);
-      let data: any = null;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error("[Proxy] GAS-Antwort nicht als JSON lesbar (get_branding)", parseError);
-        data = null;
-      }
+      const kundenId = url.searchParams.get("kundenId") || "";
+      const [imSupabase, supabaseBranding] = await Promise.all([
+        istSupabaseKunde(kundenId),
+        fetchSupabaseBranding(kundenId),
+      ]);
 
-      if (!data) return proxyFehler();
+      const fehler = leseFehler(imSupabase, [supabaseBranding]);
+      if (fehler) return fehlerAntwort(fehler, kundenId);
 
-      if (data.branding) {
-        data.branding = filterBranding(data.branding);
-      }
-      return jsonAntwort(data);
+      const branding = filterBranding(supabaseBranding);
+      if (!brandingVollstaendig(branding)) return vereinsnameFehlt(kundenId);
+
+      return jsonAntwort({ success: true, branding });
     }
 
     if (action === "get_beitraege") {
@@ -480,13 +389,11 @@ export default async (request: Request, context: Context) => {
         fetchSupabaseBeitraege(kundenId),
       ]);
 
-      if (imSupabase === true && supabaseBeitraege) {
-        // rows und beitraege, weil Tab1/feed.ts beide Schluessel lesen.
-        return jsonAntwort({ success: true, rows: supabaseBeitraege, beitraege: supabaseBeitraege });
-      }
+      const fehler = leseFehler(imSupabase, [supabaseBeitraege]);
+      if (fehler) return fehlerAntwort(fehler, kundenId);
 
-      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
-      return await gasDurchreichen(targetUrl, request.method);
+      // rows und beitraege, weil Tab1/feed.ts beide Schluessel lesen.
+      return jsonAntwort({ success: true, rows: supabaseBeitraege, beitraege: supabaseBeitraege });
     }
 
     if (action === "get_sponsors") {
@@ -496,12 +403,10 @@ export default async (request: Request, context: Context) => {
         fetchSupabaseSponsoren(kundenId),
       ]);
 
-      if (imSupabase === true && supabaseSponsoren) {
-        return jsonAntwort({ success: true, sponsors: supabaseSponsoren });
-      }
+      const fehler = leseFehler(imSupabase, [supabaseSponsoren]);
+      if (fehler) return fehlerAntwort(fehler, kundenId);
 
-      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
-      return await gasDurchreichen(targetUrl, request.method);
+      return jsonAntwort({ success: true, sponsors: supabaseSponsoren });
     }
 
     if (action === "checkTeamLogin") {
@@ -511,42 +416,36 @@ export default async (request: Request, context: Context) => {
         fetchSupabaseHasTeamLogin(kundenId),
       ]);
 
-      if (imSupabase === true && hasTeamLogin !== null) {
-        if (hasTeamLogin === false) {
-          // Kein Fehler, aber auffaellig: fehlender Schluessel/Policy liefert
-          // ebenfalls eine leere Liste statt eines Fehlerstatus.
-          console.warn("[Proxy] Supabase-Kunde ohne Team-Zugaenge (checkTeamLogin)", kundenId);
-        }
-        return jsonAntwort({ hasTeamLogin });
-      }
+      const fehler = leseFehler(imSupabase, [hasTeamLogin]);
+      if (fehler) return fehlerAntwort(fehler, kundenId);
 
-      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
-      return await gasDurchreichen(targetUrl, request.method);
+      if (hasTeamLogin === false) {
+        // Kein Fehler, aber auffaellig: fehlender Schluessel/Policy liefert
+        // ebenfalls eine leere Liste statt eines Fehlerstatus.
+        console.warn("[Proxy] Supabase-Kunde ohne Team-Zugaenge (checkTeamLogin)", kundenId);
+      }
+      return jsonAntwort({ hasTeamLogin });
     }
 
     if (action === "getTeamRole") {
       const kundenId = url.searchParams.get("kundenId") || "";
       const password = url.searchParams.get("password") || "";
+      if (!password) return jsonAntwort({ success: false });
+
       const [imSupabase, teamRole] = await Promise.all([
         istSupabaseKunde(kundenId),
         fetchSupabaseTeamRole(kundenId, password),
       ]);
 
-      if (imSupabase === true && teamRole !== null) {
-        // Sowohl Treffer als auch "falsches Passwort" sind definitive
-        // Antworten aus Supabase - kein GAS-Rueckfall in beiden Faellen.
-        return jsonAntwort(teamRole);
-      }
+      const fehler = leseFehler(imSupabase, [teamRole]);
+      if (fehler) return fehlerAntwort(fehler, kundenId);
 
-      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
-      return await gasDurchreichen(targetUrl, request.method);
+      // Treffer und "falsches Passwort" ({ success: false }) sind beide
+      // definitive Antworten aus Supabase.
+      return jsonAntwort(teamRole);
     }
 
-    if (!GAS_ERLAUBTE_AKTIONEN.has(action)) {
-      return nichtErlaubt();
-    }
-
-    return await gasDurchreichen(targetUrl, request.method);
+    return nichtErlaubt();
   } catch (error) {
     return new Response(
       JSON.stringify({ success: false, error: "Proxy Fehler" }),
