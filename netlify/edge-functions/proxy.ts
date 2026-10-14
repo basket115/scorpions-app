@@ -1,6 +1,6 @@
 import type { Context } from "https://edge.netlify.com";
 import { fetchSupabaseBranding, istSupabaseKunde } from "./lib/supabaseBranding.ts";
-import { fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
+import { beitragsKanal, fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
 import {
@@ -49,6 +49,14 @@ const GESPERRTE_AKTIONEN = new Set([
   "update_passwort",
   "update_sponsor",
 ]);
+
+// Titel und Text eines Beitrags werden als reiner Text gespeichert. Spitze
+// Klammern werden beim Speichern durch aehnliche, harmlose Zeichen ersetzt
+// - genauso wie im ONLANG Studio (Edge Function studio-beitrag). So kann
+// ein Beitrag nie HTML enthalten, egal welche Seite ihn spaeter anzeigt.
+function ohneSpitzeKlammern(wert: string): string {
+  return wert.replace(/</g, "‹").replace(/>/g, "›");
+}
 
 function nichtErlaubt(): Response {
   return new Response(
@@ -173,8 +181,8 @@ export default async (request: Request, context: Context) => {
       const kundenId = String(body?.kundenId ?? "").trim();
       const teamId = String(body?.teamId ?? "").trim();
       const passwort = String(body?.passwort ?? "");
-      const titel = String(body?.titel ?? "").trim();
-      const text = String(body?.text ?? "").trim();
+      const titel = ohneSpitzeKlammern(String(body?.titel ?? "").trim());
+      const text = ohneSpitzeKlammern(String(body?.text ?? "").trim());
 
       if (!titel || !text) {
         return new Response(
@@ -266,8 +274,8 @@ export default async (request: Request, context: Context) => {
       const teamId = String(body?.teamId ?? "").trim();
       const passwort = String(body?.passwort ?? "");
       const id = String(body?.id ?? "").trim();
-      const titel = String(body?.titel ?? "").trim();
-      const text = String(body?.text ?? "").trim();
+      const titel = ohneSpitzeKlammern(String(body?.titel ?? "").trim());
+      const text = ohneSpitzeKlammern(String(body?.text ?? "").trim());
 
       if (!id) {
         return new Response(
@@ -409,10 +417,12 @@ export default async (request: Request, context: Context) => {
 
     if (action === "get_bootstrap") {
       const kundenId = url.searchParams.get("kundenId") || "";
+      // Das Beitragsfenster /embed fragt mit kanal=website, die App ohne (= app).
+      const kanal = beitragsKanal(url.searchParams.get("kanal"));
       const [imSupabase, supabaseBranding, supabaseBeitraege, supabaseSponsoren] = await Promise.all([
         istSupabaseKunde(kundenId),
         fetchSupabaseBranding(kundenId),
-        fetchSupabaseBeitraege(kundenId),
+        fetchSupabaseBeitraege(kundenId, kanal),
         fetchSupabaseSponsoren(kundenId),
       ]);
 

@@ -6,6 +6,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { translateKategorie } from '../i18n/translations';
 import { apiGet } from '../utils/api';
 import { resolveCustomerId } from '../utils/customer';
+import BeitragsText from '../components/BeitragsText';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -792,7 +793,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 )}
                 <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {formatBeitragDatum(beitrag.Datum, lang)}</div>
                 <h3 style={{ margin: '0 0 10px 0', fontSize: 24, lineHeight: 1.25, color: '#222', paddingRight: darfLoeschen ? 90 : 0 }}>{beitrag.Titel}</h3>
-                <p style={{ margin: 0, color: '#555', fontSize: 16, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{beitrag.Text}</p>
+                <BeitragsText text={beitrag.Text} titel={beitrag.Titel} />
                 {embedUrl && (
                   <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, marginTop: 12, borderRadius: 8, overflow: 'hidden' }}>
                     <iframe src={embedUrl} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={beitrag.Titel} />

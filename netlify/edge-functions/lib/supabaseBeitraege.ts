@@ -46,13 +46,42 @@ function parseSortKey(value: unknown): number {
   return 0;
 }
 
-// Liest per read-only-Key (SUPABASE_ANON_KEY) die Beitraege fuer einen Kunden.
+// Kanaele, fuer die hier Beitraege gelesen werden: 'app' (App-Start und
+// Nachladen) und 'website' (Beitragsfenster /embed).
+export type BeitragsKanal = "app" | "website";
+
+// Kanal aus der Adresse (?kanal=). Jeder andere oder fehlende Wert gilt als 'app'.
+export function beitragsKanal(wert: string | null): BeitragsKanal {
+  return wert === "website" ? "website" : "app";
+}
+
+// Filter fuer die Abfrage von "beitraege": nur was Besucher in diesem Kanal
+// sehen duerfen. Alle vier Bedingungen muessen zutreffen:
+//   - nicht geloescht
+//   - status = 'veroeffentlicht'
+//   - veroeffentlichen_am leer oder schon erreicht
+//   - kanaele enthaelt den Kanal
+// Gleiche Schreibweise wie in onlang-web (websiteDaten.ts, beitragsFilter).
+// Die Spalten status, veroeffentlichen_am und kanaele kommen aus SQL 012.
+function beitragsFilter(kanal: BeitragsKanal, jetzt: Date): string {
+  const zeitpunkt = encodeURIComponent(`"${jetzt.toISOString()}"`);
+  return [
+    "geloescht=not.is.true",
+    "status=eq.veroeffentlicht",
+    `or=(veroeffentlichen_am.is.null,veroeffentlichen_am.lte.${zeitpunkt})`,
+    `kanaele=cs.${encodeURIComponent(`{${kanal}}`)}`,
+  ].join("&");
+}
+
+// Liest per read-only-Key (SUPABASE_ANON_KEY) die Beitraege fuer einen Kunden
+// und einen Kanal (siehe beitragsFilter).
 // Wirft nie. Keine Beitraege -> [] (ob der Kunde ueberhaupt in Supabase
 // ist, entscheidet der Proxy per istSupabaseKunde). null nur bei
 // technischem Fehler (fehlende Env-Vars, Netzwerk, Timeout), damit der
 // Proxy dann auf die GAS-Beitraege zurueckfallen kann.
 export async function fetchSupabaseBeitraege(
-  kundenId: string
+  kundenId: string,
+  kanal: BeitragsKanal = "app"
 ): Promise<Record<string, unknown>[] | null> {
   if (!kundenId) return null;
 
@@ -64,7 +93,9 @@ export async function fetchSupabaseBeitraege(
   }
 
   try {
-    const requestUrl = `${supabaseUrl}/rest/v1/beitraege?kunden_id=eq.${encodeURIComponent(kundenId)}&select=*`;
+    const requestUrl =
+      `${supabaseUrl}/rest/v1/beitraege?kunden_id=eq.${encodeURIComponent(kundenId)}` +
+      `&${beitragsFilter(kanal, new Date())}&select=*`;
     const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
@@ -83,7 +114,6 @@ export async function fetchSupabaseBeitraege(
     if (!Array.isArray(rows)) return null;
 
     const beitraege = rows
-      .filter((row) => row?.geloescht !== true)
       .map((row) => {
         const beitrag: Record<string, unknown> = { id: row.id };
         for (const [supabaseField, appField] of Object.entries(FIELD_MAP)) {
