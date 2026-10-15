@@ -1,3 +1,5 @@
+import { abrufMitWiederholung } from "./supabaseAbruf.ts";
+
 // Uebersetzt Supabase-"sponsoren"-Zeilen (snake_case) in die Feldnamen,
 // die das Frontend aus der GAS-Antwort "sponsors" erwartet (PascalCase
 // mit Unterstrichen, id bleibt id).
@@ -20,8 +22,8 @@ function hatSlot(row: SupabaseSponsorRow): boolean {
 
 // Liest per read-only-Key (SUPABASE_ANON_KEY) die aktiven Sponsoren fuer
 // einen Kunden, ohne Zeilen mit "slot". Wirft nie - ein echter Fehler
-// (fehlende Env-Vars, Netzwerk, Timeout) liefert null, damit der
-// aufrufende Proxy auf die GAS-Sponsoren zurueckfallen kann. Kein Treffer
+// (fehlende Env-Vars, Netzwerk, Timeout auch beim zweiten Versuch) liefert
+// null - der Proxy meldet dann einen Fehler. Kein Treffer
 // ist KEIN Fehler und liefert eine leere Liste - den ONLANG-Standard-Sponsor
 // zeigt nur die App (Tab1.tsx), in der Sprache der App.
 export async function fetchSupabaseSponsoren(
@@ -38,14 +40,13 @@ export async function fetchSupabaseSponsoren(
 
   try {
     const requestUrl = `${supabaseUrl}/rest/v1/sponsoren?kunden_id=eq.${encodeURIComponent(kundenId)}&aktiv=eq.true&select=*&order=position.asc.nullslast,id.asc`;
-    const response = await fetch(requestUrl, {
+    const response = await abrufMitWiederholung(requestUrl, {
       method: "GET",
       headers: {
         apikey: supabaseAnonKey,
         Authorization: `Bearer ${supabaseAnonKey}`,
       },
-      signal: AbortSignal.timeout(4000),
-    });
+    }, "[Supabase Sponsoren]");
 
     if (!response.ok) {
       console.error("[Supabase Sponsoren] Unerwarteter Status", response.status);

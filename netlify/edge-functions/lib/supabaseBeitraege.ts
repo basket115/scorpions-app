@@ -1,3 +1,5 @@
+import { abrufMitWiederholung } from "./supabaseAbruf.ts";
+
 // Uebersetzt Supabase-"beitraege"-Zeilen (snake_case) in die Feldnamen,
 // die die App im Bootstrap-Beitraege-Array erwartet (PascalCase, id bleibt id).
 const FIELD_MAP: Record<string, string> = {
@@ -77,8 +79,8 @@ function beitragsFilter(kanal: BeitragsKanal, jetzt: Date): string {
 // und einen Kanal (siehe beitragsFilter).
 // Wirft nie. Keine Beitraege -> [] (ob der Kunde ueberhaupt in Supabase
 // ist, entscheidet der Proxy per istSupabaseKunde). null nur bei
-// technischem Fehler (fehlende Env-Vars, Netzwerk, Timeout), damit der
-// Proxy dann auf die GAS-Beitraege zurueckfallen kann.
+// technischem Fehler (fehlende Env-Vars, Netzwerk, Timeout auch beim
+// zweiten Versuch) - der Proxy meldet dann einen Fehler.
 export async function fetchSupabaseBeitraege(
   kundenId: string,
   kanal: BeitragsKanal = "app"
@@ -96,14 +98,13 @@ export async function fetchSupabaseBeitraege(
     const requestUrl =
       `${supabaseUrl}/rest/v1/beitraege?kunden_id=eq.${encodeURIComponent(kundenId)}` +
       `&${beitragsFilter(kanal, new Date())}&select=*`;
-    const response = await fetch(requestUrl, {
+    const response = await abrufMitWiederholung(requestUrl, {
       method: "GET",
       headers: {
         apikey: supabaseAnonKey,
         Authorization: `Bearer ${supabaseAnonKey}`,
       },
-      signal: AbortSignal.timeout(4000),
-    });
+    }, "[Supabase Beitraege]");
 
     if (!response.ok) {
       console.error("[Supabase Beitraege] Unerwarteter Status", response.status);

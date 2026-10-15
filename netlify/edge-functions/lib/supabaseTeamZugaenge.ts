@@ -5,13 +5,13 @@
 
 import { getSecretCredentials } from "./supabaseSecret.ts";
 import { gleichesPasswort } from "./passwortVergleich.ts";
+import { abrufMitWiederholung } from "./supabaseAbruf.ts";
 
 type SupabaseTeamRow = Record<string, unknown>;
 
 // Prueft nur, OB es fuer einen Kunden ueberhaupt Team-Zugaenge gibt -
 // liefert nie das Passwort mit. true/false bei erfolgreicher Anfrage,
-// null nur bei echtem technischem Fehler (dann faellt der Proxy auf
-// GAS zurueck).
+// null nur bei echtem technischem Fehler (dann meldet der Proxy einen Fehler).
 export async function fetchSupabaseHasTeamLogin(
   kundenId: string
 ): Promise<boolean | null> {
@@ -23,13 +23,12 @@ export async function fetchSupabaseHasTeamLogin(
   try {
     const orFilter = `or=(team_id.eq.${encodeURIComponent(kundenId)},team_id.like.${encodeURIComponent(kundenId)}-*)`;
     const requestUrl = `${creds.supabaseUrl}/rest/v1/team_zugaenge?${orFilter}&select=team_id&limit=1`;
-    const response = await fetch(requestUrl, {
+    const response = await abrufMitWiederholung(requestUrl, {
       method: "GET",
       headers: {
         apikey: creds.secretKey,
       },
-      signal: AbortSignal.timeout(4000),
-    });
+    }, "[Supabase Team] (hasTeamLogin)");
 
     if (!response.ok) {
       console.error("[Supabase Team] Unerwarteter Status (hasTeamLogin)", response.status);
@@ -57,7 +56,7 @@ type TeamRoleResult =
 // (also nie "passwort"). Kein Treffer, mehrere Treffer oder falsches
 // Passwort ist eine
 // definitive Antwort (success:false), kein Fehlerfall. null bedeutet
-// echter technischer Fehler - dann faellt der Proxy auf GAS zurueck.
+// echter technischer Fehler - dann meldet der Proxy einen Fehler.
 export async function fetchSupabaseTeamRole(
   kundenId: string,
   password: string
@@ -73,13 +72,12 @@ export async function fetchSupabaseTeamRole(
       `?kunden_id=eq.${encodeURIComponent(kundenId)}` +
       `&aktiv=eq.true` +
       `&select=team_id,mannschaft,rolle,passwort`;
-    const response = await fetch(requestUrl, {
+    const response = await abrufMitWiederholung(requestUrl, {
       method: "GET",
       headers: {
         apikey: creds.secretKey,
       },
-      signal: AbortSignal.timeout(4000),
-    });
+    }, "[Supabase Team] (getTeamRole)");
 
     if (!response.ok) {
       console.error("[Supabase Team] Unerwarteter Status (getTeamRole)", response.status);

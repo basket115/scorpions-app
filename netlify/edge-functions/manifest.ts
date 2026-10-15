@@ -1,15 +1,16 @@
 import type { Context } from "https://edge.netlify.com";
 import { fetchSupabaseBranding, istSupabaseKunde } from "./lib/supabaseBranding.ts";
 import { ladeBildInfo } from "./lib/bildInfo.ts";
+import { brandingVollstaendig } from "./lib/supabaseAbruf.ts";
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrvPIQsGaqHP28_9G-geahMB0QMYHlbylnGLUTeJagi1Sc_rgPVErasrhc0HGGthppYA/exec";
-
+// Name, Farbe und Logo kommen nur aus Supabase (kein GAS-Rueckfall mehr).
+// Unbekannter Kunde oder Supabase nicht erreichbar: ONLANG-Standard.
 const STANDARD_NAME = "ONLANG";
 const STANDARD_FARBE = "#111111";
 const STANDARD_LOGO = "/logo.png";
 
 // Herkunft der Manifest-Daten, steht im Header X-Onlang-Quelle.
-type Quelle = "supabase" | "gas" | "fallback";
+type Quelle = "supabase" | "fallback";
 
 type ManifestBranding = {
   vereinName: string;
@@ -22,9 +23,8 @@ type ManifestBranding = {
 
 type ManifestIcon = { src: string; sizes?: string; type?: string; purpose: string };
 
-// Uebernimmt Name, Farbe und Logo aus einem Branding-Objekt (GAS- bzw.
-// aus Supabase uebersetzte Feldnamen). Leere Werte -> Standard.
-// Short_Name und App_Icon_* gibt es nur in Supabase.
+// Uebernimmt Name, Farbe und Logo aus dem Supabase-Branding (uebersetzte
+// Feldnamen). Leere Werte -> Standard.
 function brandingUebernehmen(branding: Record<string, unknown>): ManifestBranding {
   const vereinName = String(branding.Verein_Name || STANDARD_NAME).trim() || STANDARD_NAME;
   return {
@@ -75,38 +75,6 @@ async function iconsErmitteln(branding: ManifestBranding, requestUrl: string): P
   return [{ src: branding.logoUrl, purpose: "any" }];
 }
 
-// GAS nur fuer Nicht-Supabase-Kunden bzw. bei technischem Supabase-Fehler.
-// Mit Timeout, und eine HTML-Fehlerseite statt JSON fuehrt zu null statt
-// zu einer Ausnahme.
-async function brandingAusGas(kundenId: string): Promise<ManifestBranding | null> {
-  try {
-    const targetUrl = `${SCRIPT_URL}?action=get_bootstrap&kundenId=${encodeURIComponent(kundenId)}`;
-    const response = await fetch(targetUrl, {
-      method: "GET",
-      redirect: "follow",
-      cache: "no-store",
-      headers: { "User-Agent": "Netlify-Edge-PWA-Manifest/1.0" },
-      signal: AbortSignal.timeout(6000),
-    });
-
-    let data: any = null;
-    try {
-      data = await response.json();
-    } catch (parseError) {
-      console.error("[PWA manifest] GAS-Antwort nicht als JSON lesbar", parseError);
-      return null;
-    }
-
-    if (data?.success && data.branding && typeof data.branding === "object") {
-      return brandingUebernehmen(data.branding);
-    }
-    return null;
-  } catch (error) {
-    console.error("[PWA manifest] Branding aus GAS konnte nicht geladen werden", error);
-    return null;
-  }
-}
-
 export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
   const kundenId = (url.searchParams.get("kunde") || "").trim();
@@ -127,17 +95,11 @@ export default async (request: Request, context: Context) => {
       fetchSupabaseBranding(kundenId),
     ]);
 
-    if (imSupabase === true && supabaseBranding) {
-      // Supabase-Kunde: nur Supabase, kein GAS-Aufruf.
-      branding = brandingUebernehmen(supabaseBranding);
+    if (imSupabase === true && brandingVollstaendig(supabaseBranding)) {
+      branding = brandingUebernehmen(supabaseBranding!);
       quelle = "supabase";
     } else {
-      // Kein Supabase-Kunde oder technischer Fehler: GAS wie bisher.
-      const gasBranding = await brandingAusGas(kundenId);
-      if (gasBranding) {
-        branding = gasBranding;
-        quelle = "gas";
-      }
+      console.error("[PWA manifest] Kein Branding aus Supabase, ONLANG-Standard", kundenId, imSupabase);
     }
   }
 

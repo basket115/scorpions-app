@@ -1,5 +1,7 @@
+import { abrufMitWiederholung } from "./supabaseAbruf.ts";
+
 // Uebersetzt die Supabase-"kunden"-Zeile (snake_case) in die Feldnamen,
-// die die App aus dem GAS-Branding-Objekt erwartet (PascalCase).
+// die die App im Branding-Objekt erwartet (PascalCase, wie frueher aus GAS).
 const FIELD_MAP: Record<string, string> = {
   verein_name: "Verein_Name",
   thema_farbe: "Thema_Farbe",
@@ -29,9 +31,8 @@ const FIELD_MAP: Record<string, string> = {
 type SupabaseKundenRow = Record<string, unknown>;
 
 // Liest per read-only-Key (SUPABASE_ANON_KEY) das Branding fuer einen Kunden.
-// Wirft nie - jeder Fehler (fehlende Env-Vars, Netzwerk, Timeout, leeres
-// Ergebnis) liefert null, damit der aufrufende Proxy immer die GAS-Antwort
-// unveraendert weitergeben kann.
+// Wirft nie - jeder Fehler (fehlende Env-Vars, Netzwerk, Timeout auch beim
+// zweiten Versuch, leeres Ergebnis) liefert null.
 export async function fetchSupabaseBranding(
   kundenId: string
 ): Promise<Record<string, unknown> | null> {
@@ -46,14 +47,13 @@ export async function fetchSupabaseBranding(
 
   try {
     const requestUrl = `${supabaseUrl}/rest/v1/kunden?kunden_id=eq.${encodeURIComponent(kundenId)}&select=*`;
-    const response = await fetch(requestUrl, {
+    const response = await abrufMitWiederholung(requestUrl, {
       method: "GET",
       headers: {
         apikey: supabaseAnonKey,
         Authorization: `Bearer ${supabaseAnonKey}`,
       },
-      signal: AbortSignal.timeout(4000),
-    });
+    }, "[Supabase Branding]");
 
     if (!response.ok) {
       console.error("[Supabase Branding] Unerwarteter Status", response.status);
@@ -80,8 +80,7 @@ export async function fetchSupabaseBranding(
 
 // Prueft, ob ein Kunde in Supabase gefuehrt wird (Zeile in "kunden").
 // true/false bei erfolgreicher Anfrage, null nur bei technischem Fehler
-// (fehlende Env-Vars, Netzwerk, Timeout) - dann faellt der Proxy auf GAS
-// zurueck.
+// (fehlende Env-Vars, Netzwerk, Timeout auch beim zweiten Versuch).
 export async function istSupabaseKunde(kundenId: string): Promise<boolean | null> {
   if (!kundenId) return false;
 
@@ -96,14 +95,13 @@ export async function istSupabaseKunde(kundenId: string): Promise<boolean | null
     const requestUrl =
       `${supabaseUrl}/rest/v1/kunden?kunden_id=eq.${encodeURIComponent(kundenId)}` +
       `&select=kunden_id&limit=1`;
-    const response = await fetch(requestUrl, {
+    const response = await abrufMitWiederholung(requestUrl, {
       method: "GET",
       headers: {
         apikey: supabaseAnonKey,
         Authorization: `Bearer ${supabaseAnonKey}`,
       },
-      signal: AbortSignal.timeout(4000),
-    });
+    }, "[Supabase Kunde]");
 
     if (!response.ok) {
       console.error("[Supabase Kunde] Unerwarteter Status", response.status);
