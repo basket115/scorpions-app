@@ -25,6 +25,11 @@
         const kundeAusUrl = (params.get('kunde') || '').trim();
         const gespeicherterKunde = (localStorage.getItem('kundenId') || '').trim();
         const kunde = kundeAusUrl || gespeicherterKunde;
+        // Eigene Domain der Scorpions: ohne Verein direkt zu V002.
+        if (!kunde && window.location.hostname === 'app.scorpions-sggierath.de') {
+          window.location.replace('/?kunde=V002');
+          return;
+        }
 
         if (kundeAusUrl) {
           localStorage.setItem('kundenId', kundeAusUrl);
