@@ -11,6 +11,8 @@ import {
   unteradminKategorie,
   ladeVereinsKategorien,
 } from "./lib/supabaseBeitraegeSchreiben.ts";
+import type { Zugang } from "./lib/supabaseBeitraegeSchreiben.ts";
+import { bearerToken, pruefeEmailZugang } from "./lib/emailZugang.ts";
 import { filterBranding } from "./lib/brandingFilter.ts";
 import {
   brandingVollstaendig,
@@ -83,6 +85,39 @@ function vereinsnameFehlt(kundenId: string): Response {
   );
 }
 
+// Zugang fuer Schreib-Aktionen: mit E-Mail-Login (Authorization: Bearer)
+// derselbe Supabase-Login wie Studio/Admin, sonst der alte Weg ueber
+// team_zugaenge (Team-ID + App-Passwort, V002/V006/HU001).
+const EMAIL_FEHLER: Record<string, string> = {
+  kein_login: "Bitte neu anmelden",
+  anderer_verein: "Dieses Login gehoert zu einem anderen Verein",
+  kein_zugang: "Zugang verweigert",
+  gesperrt: "Testphase beendet",
+  fehler: "Speichern fehlgeschlagen",
+};
+
+async function zugangFuerSchreiben(
+  request: Request, kundenId: string, teamId: string, passwort: string
+): Promise<{ zugang: Zugang } | { antwort: Response }> {
+  const token = bearerToken(request);
+  if (token) {
+    const e = await pruefeEmailZugang(token, kundenId);
+    if (e.status === "ok") return { zugang: e.zugang };
+    return { antwort: new Response(
+      JSON.stringify({ success: false, error: EMAIL_FEHLER[e.status], code: e.status }),
+      { status: 200, headers: RESPONSE_HEADERS }
+    ) };
+  }
+  const zugang = await pruefeZugang(kundenId, teamId, passwort);
+  if (!zugang) {
+    return { antwort: new Response(
+      JSON.stringify({ success: false, error: "Zugang verweigert" }),
+      { status: 200, headers: RESPONSE_HEADERS }
+    ) };
+  }
+  return { zugang };
+}
+
 export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
   const action = url.searchParams.get("action");
@@ -90,6 +125,15 @@ export default async (request: Request, context: Context) => {
   try {
     if (!action || GESPERRTE_AKTIONEN.has(action)) {
       return nichtErlaubt();
+    }
+
+    if (action === "emailRolle") {
+      const kundenId = (url.searchParams.get("kundenId") || "").trim();
+      const e = await pruefeEmailZugang(bearerToken(request), kundenId);
+      const antwort = e.status === "ok"
+        ? { success: true, rolle: e.zugang.rolle }
+        : { success: false, error: EMAIL_FEHLER[e.status], code: e.status };
+      return new Response(JSON.stringify(antwort), { status: 200, headers: RESPONSE_HEADERS });
     }
 
     if (action === "beitragErstellen") {
@@ -121,13 +165,9 @@ export default async (request: Request, context: Context) => {
         );
       }
 
-      const zugang = await pruefeZugang(kundenId, teamId, passwort);
-      if (!zugang) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Zugang verweigert" }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
-      }
+      const pruefung = await zugangFuerSchreiben(request, kundenId, teamId, passwort);
+      if ("antwort" in pruefung) return pruefung.antwort;
+      const zugang = pruefung.zugang;
 
       // Hauptadmin: Kategorie wie geschickt. Unteradmin: immer seine
       // Mannschaft aus der team_zugaenge-Zeile - die Kategorie vom Browser
@@ -219,13 +259,9 @@ export default async (request: Request, context: Context) => {
         );
       }
 
-      const zugang = await pruefeZugang(kundenId, teamId, passwort);
-      if (!zugang) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Zugang verweigert" }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
-      }
+      const pruefung = await zugangFuerSchreiben(request, kundenId, teamId, passwort);
+      if ("antwort" in pruefung) return pruefung.antwort;
+      const zugang = pruefung.zugang;
 
       // kunden_id, rolle und mannschaft kommen aus der gefundenen
       // team_zugaenge-Zeile, nicht vom Browser. Ob der Zugang diesen Beitrag
@@ -295,13 +331,9 @@ export default async (request: Request, context: Context) => {
         );
       }
 
-      const zugang = await pruefeZugang(kundenId, teamId, passwort);
-      if (!zugang) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Zugang verweigert" }),
-          { status: 200, headers: RESPONSE_HEADERS }
-        );
-      }
+      const pruefung = await zugangFuerSchreiben(request, kundenId, teamId, passwort);
+      if ("antwort" in pruefung) return pruefung.antwort;
+      const zugang = pruefung.zugang;
 
       // kunden_id, rolle und mannschaft kommen aus der gefundenen
       // team_zugaenge-Zeile, nicht vom Browser. Ob der Zugang diesen Beitrag

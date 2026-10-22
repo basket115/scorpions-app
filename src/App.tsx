@@ -6,6 +6,7 @@ import { useLanguage } from './i18n/LanguageContext';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
 import { resolveCustomerId, noCustomerText } from './utils/customer';
 import { appSymbol, logoOhneRand } from './utils/logo';
+import { anmelden, abmelden, hatSitzung, loginKopf, passwortVergessenAdresse } from './utils/vereinsLogin';
 
 export const BrandingContext = createContext<any>(null);
 
@@ -74,7 +75,7 @@ const PasswordInput: React.FC<{
 };
 
 const App: React.FC = () => {
-  const { t: languageT, setLang } = useLanguage();
+  const { t: languageT, setLang, lang } = useLanguage();
   const [branding, setBranding] = useState<any>(null);
   const [bootstrapData, setBootstrapData] = useState<any>(null);
  const [uebersetzungen, setUebersetzungen] = useState<Record<string, string>>({});
@@ -99,6 +100,10 @@ const t = (key: string, fallback?: string): string => {
   const [teamError, setTeamError] = useState('');
   const [teamLoading, setTeamLoading] = useState(false);
   const [hasTeamLogin, setHasTeamLogin] = useState<boolean | null>(null);
+  // Anmeldung im Zahnrad: 'email' (ein Login für Admin, Studio und App) oder
+  // 'alt' (App-Passwort aus team_zugaenge, nur Vereine, die es noch haben).
+  const [anmeldeWeg, setAnmeldeWeg] = useState<'email' | 'alt'>('email');
+  const [loginEmail, setLoginEmail] = useState('');
 
   const resolvedKunde = resolveCustomerId();
   const kundenId = resolvedKunde || '';
@@ -198,7 +203,10 @@ const osAppId = '';
       setTeamId(sessionStorage.getItem('teamId') || '');
       setTeamLoginDone(true);
       setHasTeamLogin(true);
-    } else { setHasTeamLogin(false); }
+    } else {
+      setHasTeamLogin(false);
+      if (hatSitzung()) emailRolleUebernehmen(true);
+    }
   }, [kundenId]); // eslint-disable-line
 
   const checkHasTeamLogin = async () => {
@@ -263,10 +271,68 @@ const handleTeamLogin = async () => {
   setTeamLoading(false);
 };
 
+  // Fragt den App-Server, ob der E-Mail-Login zu diesem Verein gehört, und
+  // übernimmt die Rolle. still = beim Start (dann ohne Fehlermeldung).
+  const emailRolleUebernehmen = async (still: boolean): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_EXEC_URL}?action=emailRolle&kundenId=${encodeURIComponent(kundenId)}`, {
+        method: 'POST',
+        headers: await loginKopf(),
+      });
+      const data = await res.json();
+      if (data.success && (data.rolle === 'admin' || data.rolle === 'team')) {
+        sessionStorage.setItem('teamRolle', data.rolle);
+        sessionStorage.setItem('teamMannschaft', '');
+        sessionStorage.setItem('teamId', '');
+        sessionStorage.setItem('teamKundenId', kundenId);
+        sessionStorage.setItem('anmeldeArt', 'email');
+        sessionStorage.removeItem('teamPasswort');
+        setTeamRolle(data.rolle);
+        setTeamMannschaft('');
+        setTeamId('');
+        setTeamLoginDone(true);
+        setShowTeamLogin(false);
+        return true;
+      }
+      if (!still) {
+        const code = String(data.code || '');
+        setTeamError(
+          code === 'anderer_verein' ? t('error_anderer_verein', 'Dieses Login gehört zu einem anderen Verein.')
+          : code === 'gesperrt' ? t('error_testphase_beendet', 'Ihre Testphase ist beendet.')
+          : t('error_kein_zugang_app', 'Für dieses Login ist kein Zugang freigeschaltet.')
+        );
+      }
+      await abmelden();
+      return false;
+    } catch {
+      if (!still) setTeamError(t('error_verbindungsfehler', 'Verbindungsfehler'));
+      return false;
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    if (!loginEmail.trim() || !teamPassword) return;
+    setTeamLoading(true);
+    setTeamError('');
+    try {
+      const ok = await anmelden(loginEmail, teamPassword);
+      if (!ok) {
+        setTeamError(t('error_login_email', 'E-Mail oder Passwort stimmt nicht.'));
+      } else if (await emailRolleUebernehmen(false)) {
+        setTeamPassword('');
+        await loadBootstrap();
+      }
+    } catch {
+      setTeamError(t('error_verbindungsfehler', 'Verbindungsfehler'));
+    }
+    setTeamLoading(false);
+  };
+
   const handleTeamLogout = () => {
     sessionStorage.removeItem('teamRolle'); sessionStorage.removeItem('teamMannschaft');
     sessionStorage.removeItem('teamId'); sessionStorage.removeItem('teamKundenId');
-    sessionStorage.removeItem('teamPasswort');
+    sessionStorage.removeItem('teamPasswort'); sessionStorage.removeItem('anmeldeArt');
+    abmelden();
     setTeamRolle(null); setTeamMannschaft(''); setTeamId('');
     setTeamLoginDone(false); setShowTeamLogin(true);
   };
@@ -374,7 +440,7 @@ if (loading && !branding) {
 // Ab hier ist Branding vorhanden.
 // Jetzt erst die echte Vereins-App bzw. Login-Ansicht anzeigen.
 
- if (hasTeamLogin && showTeamLogin && !teamLoginDone) {
+ if (showTeamLogin && !teamLoginDone) {
     return (
       <IonApp>
         <div style={{ minHeight: '100vh', background: themaFarbe, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
@@ -387,10 +453,18 @@ if (loading && !branding) {
                 onError={(e) => { if (e.currentTarget.src !== loginBildUrl) e.currentTarget.src = loginBildUrl; }} />
             </div>}
             <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Sport App'}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('hinweis_team_login', 'Bitte mit deinem Team-Passwort einloggen')}</p>
-            <PasswordInput value={teamPassword} onChange={setTeamPassword} onEnter={handleTeamLogin} />
+            {anmeldeWeg === 'email' ? (<>
+              <p style={{ color: 'rgba(255,255,255,0.75)', margin: 0, fontSize: 14, textAlign: 'center' }}>{t('hinweis_email_login', 'Mit derselben E-Mail-Adresse und demselben Passwort wie im Studio und im Admin.')}</p>
+              <input type="email" autoComplete="username" value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)}
+                placeholder={t('login_email_placeholder', 'E-Mail-Adresse')}
+                style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: 'none', fontSize: 16, fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+              <PasswordInput value={teamPassword} onChange={setTeamPassword} onEnter={handleEmailLogin} placeholder={t('login_passwort_placeholder', 'Passwort')} />
+            </>) : (<>
+              <p style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 14 }}>{t('hinweis_team_login', 'Bitte mit Ihrem Team-Passwort anmelden.')}</p>
+              <PasswordInput value={teamPassword} onChange={setTeamPassword} onEnter={handleTeamLogin} />
+            </>)}
             {teamError && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{teamError}</p>}
-            <button onClick={handleTeamLogin} disabled={teamLoading}
+            <button onClick={anmeldeWeg === 'email' ? handleEmailLogin : handleTeamLogin} disabled={teamLoading}
               style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
               {teamLoading ? t('btn_login_laeuft', 'Einloggen...') : t('btn_login', 'Einloggen')}
             </button>
@@ -398,6 +472,16 @@ if (loading && !branding) {
               style={{ width: '100%', padding: 11, borderRadius: 10, border: '1px solid rgba(255,255,255,0.3)', background: 'transparent', color: 'white', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t('btn_weiter_ohne_login', 'Weiter ohne Login →')}
             </button>
+            {anmeldeWeg === 'email' && (
+              <a href={passwortVergessenAdresse(lang)} target="_blank" rel="noopener noreferrer"
+                style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>{t('btn_passwort_vergessen', 'Passwort vergessen?')}</a>
+            )}
+            {hasTeamLogin && (
+              <button type="button" onClick={() => { setAnmeldeWeg(anmeldeWeg === 'email' ? 'alt' : 'email'); setTeamError(''); setTeamPassword(''); }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.65)', fontSize: 13, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {anmeldeWeg === 'email' ? t('btn_alter_zugang', 'Alter Zugang mit App-Passwort') : t('btn_email_zugang', 'Zurück zur Anmeldung mit E-Mail')}
+              </button>
+            )}
           </div>
         </div>
       </IonApp>
@@ -428,8 +512,9 @@ sprache: String(branding?.Sprache || 'de').toLowerCase(),
       <IonApp>
         <Tab1
   onAdminClick={
-    // Admin nur noch über den Team-Login; ohne Team-Zugänge kein Admin-Knopf.
-    showGear && hasTeamLogin
+    // Zahnrad bei jedem Verein (außer "nur lesen"): Anmeldung mit E-Mail +
+    // Passwort, bei Vereinen mit App-Passwort zusätzlich der alte Weg.
+    showGear
       ? () => {
           setShowTeamLogin(true);
           setTeamLoginDone(false);

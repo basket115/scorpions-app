@@ -7,6 +7,7 @@ import { translateKategorie } from '../i18n/translations';
 import { apiGet } from '../utils/api';
 import { resolveCustomerId } from '../utils/customer';
 import BeitragsText from '../components/BeitragsText';
+import { loginKopf } from '../utils/vereinsLogin';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -243,6 +244,16 @@ const SocialBar: React.FC<{ b: any }> = ({ b }) => {
   );
 };
 
+// Fehlermeldung des App-Servers: bekannte Codes des E-Mail-Logins übersetzt,
+// sonst der Text vom Server.
+function fehlerTextFuer(d: any, t: (k: string, f?: string) => string): string {
+  const code = String(d?.code || '');
+  if (code === 'anderer_verein') return t('error_anderer_verein', 'Dieses Login gehört zu einem anderen Verein.');
+  if (code === 'gesperrt') return t('error_testphase_beendet', 'Ihre Testphase ist beendet.');
+  if (code === 'kein_login') return t('error_neu_anmelden', 'Bitte melden Sie sich neu an.');
+  return String(d?.error || t('error_unbekannt', 'Unbekannt'));
+}
+
 const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onClose, themaFarbe }) => {
   const { t } = useLanguage();
   return (
@@ -279,7 +290,7 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
       // prüft der Proxy serverseitig, Passwort im Body statt in der URL.
       const res = await fetch(`${API_EXEC_URL}?action=beitragBearbeiten`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' , ...(await loginKopf()) },
         body: JSON.stringify({
           kundenId: sessionStorage.getItem('teamKundenId') || kundenId,
           teamId: sessionStorage.getItem('teamId') || '',
@@ -294,7 +305,7 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
       });
       const data = await res.json();
       if (data.success) { onSaved({ ...beitrag, Titel: titel, Text: text, Bild_URL: bildUrl, Video_URL: videoUrl, Kategorie: kategorie || beitrag.Kategorie }); onClose(); }
-      else { alert(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt'))); }
+      else { alert(t('status_fehler', 'Fehler: ') + (fehlerTextFuer(data, t))); }
     } catch { alert(t('error_verbindungsfehler', 'Verbindungsfehler')); } finally { setSaving(false); }
   };
   return (
@@ -592,7 +603,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     // prüft der Proxy serverseitig, Passwort im Body statt in der URL.
     const data = await fetch(`${API_EXEC_URL}?action=beitragErstellen`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' , ...(await loginKopf()) },
       body: JSON.stringify({
         kundenId: sessionStorage.getItem('teamKundenId') || branding?.Kunden_ID || '',
         teamId: sessionStorage.getItem('teamId') || '',
@@ -606,7 +617,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     }).then(r => r.json());
 
     if (!data.success) {
-      alert(t('status_fehler', 'Fehler: ') + (data.error || t('error_unbekannt', 'Unbekannt')));
+      alert(t('status_fehler', 'Fehler: ') + (fehlerTextFuer(data, t)));
       return;
     }
 
@@ -645,7 +656,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
       // prüft der Proxy serverseitig, Passwort im Body statt in der URL.
       const res = await fetch(`${API_EXEC_URL}?action=beitragLoeschen`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' , ...(await loginKopf()) },
         body: JSON.stringify({
           kundenId: sessionStorage.getItem('teamKundenId') || branding?.Kunden_ID || '',
           teamId: sessionStorage.getItem('teamId') || '',
@@ -654,7 +665,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         })
       }).then(r => r.json());
       if (res.success) { setBeitraege(prev => prev.filter(item => String(item.id || item.Id || '') !== beitragId)); }
-      else { alert(t('status_fehler', 'Fehler: ') + (res.error || t('error_unbekannt', 'Unbekannt'))); }
+      else { alert(t('status_fehler', 'Fehler: ') + (fehlerTextFuer(res, t))); }
     } catch { alert(t('error_verbindungsfehler', 'Verbindungsfehler.')); } finally { setDeletingId(null); }
   };
 
