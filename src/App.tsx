@@ -274,9 +274,9 @@ const handleTeamLogin = async () => {
 
   const themaFarbe = branding?.Thema_Farbe || '#111111';
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
-  // Anmeldebildschirm: eigenes quadratisches App-Icon (512 fuer hohe
-  // Pixeldichte), sonst Vereinslogo.
-  const loginBildUrl = branding?.App_Icon_512 || branding?.App_Icon_192 || logoUrl;
+  // Anmeldebildschirm: Vereinslogo (wie Kopfzeile und Website), nur ohne
+  // Logo das eigene App-Icon.
+  const loginBildUrl = logoUrl || branding?.App_Icon_512 || branding?.App_Icon_192 || '';
 
 if (!resolvedKunde) {
   const l = (

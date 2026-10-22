@@ -6,6 +6,8 @@ const FIELD_MAP: Record<string, string> = {
   verein_name: "Verein_Name",
   thema_farbe: "Thema_Farbe",
   logo_verein: "Logo_Verein",
+  // Hintergrund hinter dem Vereinslogo (hell/dunkel/ohne), wie auf der Website.
+  logo_hintergrund: "Logo_Hintergrund",
   kunden_id: "Kunden_ID",
   sprache: "Sprache",
   status: "Status",
