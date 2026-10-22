@@ -7,6 +7,7 @@ import {
 import { refreshOutline, settingsOutline } from 'ionicons/icons';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
+import { logoOhneRand } from '../utils/logo';
 
 interface AppHeaderProps {
   title: string;
@@ -21,8 +22,8 @@ interface AppHeaderProps {
 
 const s: Record<string, React.CSSProperties> = {
   startSlot: { display: 'flex', alignItems: 'center', paddingLeft: 6 },
-  // Wie Template 7 (.brand-logo am Handy): 48px, Ecken 14px, 2px Innenrand.
-  logo: { height: 48, width: 48, objectFit: 'contain', borderRadius: 14, padding: 2, boxSizing: 'border-box' },
+  // Wie Template 7 (.brand-logo am Handy): 48px, Ecken 14px, 1px Innenrand.
+  logo: { height: 48, width: 48, objectFit: 'contain', borderRadius: 14, padding: 1, boxSizing: 'border-box' },
   // fontSize setzt useTitelEinpassen; Innenabstand kleiner als Ionic-Standard
   // (20px), damit der Vereinsname im Hochformat mehr Platz hat.
   title: { color: 'white', fontWeight: 700, paddingLeft: 8, paddingRight: 8 },
@@ -87,7 +88,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     <IonHeader>
       <IonToolbar style={{ '--background': themaFarbe || '#C4161C' } as React.CSSProperties}>
         <div slot="start" style={s.startSlot}>
-          {logoUrl && <img src={logoUrl} alt="Logo" style={{ ...s.logo, background: logoHintergrundFarbe(logoHintergrund) }} />}
+          {logoUrl && (
+            <img
+              src={logoOhneRand(logoUrl)}
+              alt="Logo"
+              style={{ ...s.logo, background: logoHintergrundFarbe(logoHintergrund) }}
+              // Beschnittenes Bild nicht ladbar: Original zeigen.
+              onError={(e) => { if (e.currentTarget.src !== logoUrl) e.currentTarget.src = logoUrl; }}
+            />
+          )}
         </div>
         <IonTitle ref={titleRef} style={s.title}><span ref={textRef}>{title}</span></IonTitle>
         <IonButtons slot="end">
