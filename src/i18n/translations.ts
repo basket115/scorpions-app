@@ -29,9 +29,9 @@ export const translations: Record<string, TranslationRow> = {
   error_verbindungsfehler: { de: 'Verbindungsfehler', hu: 'Kapcsolati hiba', en: 'Connection error' },
   error_login_fehlgeschlagen: { de: 'Login Fehler', hu: 'Bejelentkezési hiba', en: 'Login error' },
   app_demo_running: {
-  de: 'Demo läuft noch {tage} Tage',
-  hu: 'A demó még {tage} napig aktív',
-  en: 'Demo active for {tage} more days'
+  de: 'Testphase: noch {tage} Tage',
+  hu: 'Próbaidő: még {tage} nap',
+  en: 'Trial: {tage} days left'
 },
 
   // ── AppHeader.tsx ────────────────────────────────────────────
