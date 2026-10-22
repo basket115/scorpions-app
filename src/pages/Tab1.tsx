@@ -662,7 +662,9 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     setBeitraege(prev => prev.map(b => String(b.id || b.Id || '') === String(updated.id || updated.Id || '') ? updated : b));
   };
 
+  // Testphase-Leiste nur fuer angemeldete Admins/Teams, nie fuer Besucher.
   const demoTage = (() => {
+    if (!canPost) return null;
     if (String(b?.Status || '').trim().toUpperCase() === 'AKTIV') return null;
     const ende = b?.Demo_Ende;
     if (!ende) return null;
@@ -701,7 +703,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   >
     ⏱ {t(
       'app_demo_running',
-      `Demo läuft noch ${demoTage} Tage`
+      `Testphase: noch ${demoTage} Tage`
     ).replace('{tage}', String(demoTage))}
   </div>
 )}
