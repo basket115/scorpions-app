@@ -52,6 +52,20 @@ function typAusEndung(src: string): string | undefined {
   return undefined;
 }
 
+// Quadratisches App-Symbol aus einem Cloudinary-Logo: leeren Rand abschneiden,
+// mittig auf Weiss (90 %, wie die HU001-Symbole), PNG ohne Transparenz.
+// Andere Adressen (z. B. imgur): "". Gleiche Regel wie appSymbol() in
+// src/utils/logo.ts.
+const CLOUDINARY_UPLOAD = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)/;
+export function appSymbol(logoUrl: string, groesse: number): string {
+  if (!CLOUDINARY_UPLOAD.test(logoUrl)) return "";
+  const innen = Math.round(groesse * 0.9);
+  return logoUrl.replace(
+    CLOUDINARY_UPLOAD,
+    `$1e_trim:10/c_pad,w_${innen},h_${innen},b_white/c_lpad,w_${groesse},h_${groesse},b_white/f_png/`
+  );
+}
+
 // purpose nur "any": die Icons haben keinen Schutzrand fuer "maskable",
 // Android wuerde sie anschneiden.
 async function iconsErmitteln(branding: ManifestBranding, requestUrl: string): Promise<ManifestIcon[]> {
@@ -65,7 +79,17 @@ async function iconsErmitteln(branding: ManifestBranding, requestUrl: string): P
   }
   if (eigene.length) return eigene;
 
-  // 2) Sonst das Vereinslogo mit seinen tatsaechlichen Massen und seinem
+  // 2) Cloudinary-Logo: Symbole 192/512 daraus erzeugen (Chrome braucht
+  //    quadratische PNG-Symbole, sonst bietet es keine Installation an).
+  const s192 = appSymbol(branding.logoUrl, 192);
+  if (s192) {
+    return [
+      { src: s192, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: appSymbol(branding.logoUrl, 512), sizes: "512x512", type: "image/png", purpose: "any" },
+    ];
+  }
+
+  // 3) Sonst das Vereinslogo mit seinen tatsaechlichen Massen und seinem
   //    tatsaechlichen Format (z. B. JPEG statt behauptetem PNG).
   const info = await ladeBildInfo(new URL(branding.logoUrl, requestUrl).toString());
   if (info) {

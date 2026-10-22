@@ -37,6 +37,22 @@ export const translations: Record<string, TranslationRow> = {
   // ── AppHeader.tsx ────────────────────────────────────────────
   lbl_partner: { de: 'PARTNER', hu: 'PARTNER', en: 'PARTNER' },
   lbl_admin_tooltip: { de: 'Admin', hu: 'Admin', en: 'Admin' },
+  btn_app_installieren: { de: 'App installieren', hu: 'Alkalmazás telepítése', en: 'Install app' },
+  install_anleitung_ios: {
+    de: 'Tippen Sie auf das Teilen-Symbol (Quadrat mit Pfeil nach oben) und dann auf „Zum Home-Bildschirm“.',
+    hu: 'Koppintson a Megosztás ikonra (négyzet felfelé mutató nyíllal), majd a „Főképernyőhöz adás” lehetőségre.',
+    en: 'Tap the Share icon (square with an arrow pointing up) and then “Add to Home Screen”.'
+  },
+  install_anleitung_inapp: {
+    de: 'Hier kann die App nicht installiert werden. Öffnen Sie diese Seite in Safari bzw. Chrome: Tippen Sie auf das Menü (⋯) und dann auf „Im Browser öffnen“.',
+    hu: 'Itt az alkalmazás nem telepíthető. Nyissa meg ezt az oldalt a Safariban, illetve a Chrome-ban: koppintson a menüre (⋯), majd a „Megnyitás böngészőben” lehetőségre.',
+    en: 'The app cannot be installed here. Open this page in Safari or Chrome: tap the menu (⋯) and then “Open in browser”.'
+  },
+  install_anleitung_firefox: {
+    de: 'Tippen Sie auf das Menü (⋮) und dann auf „Installieren“.',
+    hu: 'Koppintson a menüre (⋮), majd a „Telepítés” lehetőségre.',
+    en: 'Tap the menu (⋮) and then “Install”.'
+  },
 
   // ── Tab1.tsx: Beitrags-Feed, Formulare, Popups, Footer ────────
   error_upload_fehlgeschlagen: { de: 'Upload fehlgeschlagen.', hu: 'A feltöltés sikertelen volt.', en: 'Upload failed.' },
