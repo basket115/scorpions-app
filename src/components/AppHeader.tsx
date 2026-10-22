@@ -7,10 +7,12 @@ import {
 import { refreshOutline, settingsOutline } from 'ionicons/icons';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
+import { logoOhneRand } from '../utils/logo';
 
 interface AppHeaderProps {
   title: string;
   logoUrl?: string;
+  logoHintergrund?: string;
   sponsorLogoUrl?: string;
   themaFarbe?: string;
   onRefresh?: () => void | Promise<void>;
@@ -20,7 +22,8 @@ interface AppHeaderProps {
 
 const s: Record<string, React.CSSProperties> = {
   startSlot: { display: 'flex', alignItems: 'center', paddingLeft: 6 },
-  logo: { height: 44, width: 44, objectFit: 'contain', borderRadius: 12, background: 'rgba(255,255,255,0.15)' },
+  // Wie Template 7 (.brand-logo am Handy): 48px, Ecken 14px, 1px Innenrand.
+  logo: { height: 48, width: 48, objectFit: 'contain', borderRadius: 14, padding: 1, boxSizing: 'border-box' },
   // fontSize setzt useTitelEinpassen; Innenabstand kleiner als Ionic-Standard
   // (20px), damit der Vereinsname im Hochformat mehr Platz hat.
   title: { color: 'white', fontWeight: 700, paddingLeft: 8, paddingRight: 8 },
@@ -30,6 +33,12 @@ const s: Record<string, React.CSSProperties> = {
   refreshBtn: { color: 'white' },
   adminBtn: { color: 'rgba(255,255,255,0.75)' },
 };
+
+// Logo-Hintergrund wie auf der Website (kunden.logo_hintergrund): leer = hell.
+const LOGO_HINTERGRUND: Record<string, string> = { dunkel: '#111114', ohne: 'transparent' };
+function logoHintergrundFarbe(wert?: string): string {
+  return LOGO_HINTERGRUND[String(wert || '').trim().toLowerCase()] || '#fff';
+}
 
 const TITEL_MAX_PX = 17.6; // bisher 1.1rem
 const TITEL_MIN_PX = 11;
@@ -71,7 +80,7 @@ function useTitelEinpassen(title: string) {
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
-  title, logoUrl, sponsorLogoUrl, themaFarbe, onRefresh, loading, onAdminClick
+  title, logoUrl, logoHintergrund, sponsorLogoUrl, themaFarbe, onRefresh, loading, onAdminClick
 }) => {
   const { t } = useLanguage();
   const { titleRef, textRef } = useTitelEinpassen(title);
@@ -79,7 +88,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     <IonHeader>
       <IonToolbar style={{ '--background': themaFarbe || '#C4161C' } as React.CSSProperties}>
         <div slot="start" style={s.startSlot}>
-          {logoUrl && <img src={logoUrl} alt="Logo" style={s.logo} />}
+          {logoUrl && (
+            <img
+              src={logoOhneRand(logoUrl)}
+              alt="Logo"
+              style={{ ...s.logo, background: logoHintergrundFarbe(logoHintergrund) }}
+              // Beschnittenes Bild nicht ladbar: Original zeigen.
+              onError={(e) => { if (e.currentTarget.src !== logoUrl) e.currentTarget.src = logoUrl; }}
+            />
+          )}
         </div>
         <IonTitle ref={titleRef} style={s.title}><span ref={textRef}>{title}</span></IonTitle>
         <IonButtons slot="end">

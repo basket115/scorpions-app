@@ -11,6 +11,7 @@ const ERLAUBTE_FELDER: readonly string[] = [
   "Thema_Farbe",
   "Logo_Verein",
   "Logo_verein",
+  "Logo_Hintergrund",
   "Logo_Sponsor",
   "Logo_sponsor",
   "Sprache",
