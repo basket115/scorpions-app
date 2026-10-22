@@ -5,7 +5,7 @@ import Tab1 from './pages/Tab1';
 import { useLanguage } from './i18n/LanguageContext';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
 import { resolveCustomerId, noCustomerText } from './utils/customer';
-import { logoOhneRand } from './utils/logo';
+import { appSymbol, logoOhneRand } from './utils/logo';
 
 export const BrandingContext = createContext<any>(null);
 
@@ -122,8 +122,9 @@ const t = (key: string, fallback?: string): string => {
     const kurzName = brandingData?.Short_Name || vereinName;
     const themaFarbe = brandingData?.Thema_Farbe || '#111111';
     const logoUrl = brandingData?.Logo_Verein || brandingData?.Logo_verein || '';
-    // iPhone-Startbildschirm: eigenes quadratisches App-Icon, sonst Vereinslogo.
-    const appIconUrl = brandingData?.App_Icon_192 || brandingData?.App_Icon_512 || logoUrl;
+    // iPhone-Startbildschirm: eigenes quadratisches App-Icon, sonst daraus
+    // erzeugtes Symbol (Cloudinary), sonst Vereinslogo.
+    const appIconUrl = brandingData?.App_Icon_192 || brandingData?.App_Icon_512 || appSymbol(logoUrl, 192) || logoUrl;
     document.title = vereinName;
 
     const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');

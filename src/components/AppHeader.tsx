@@ -8,6 +8,7 @@ import { refreshOutline, settingsOutline } from 'ionicons/icons';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
 import { logoOhneRand } from '../utils/logo';
+import InstallKnopf from './InstallKnopf';
 
 interface AppHeaderProps {
   title: string;
@@ -42,10 +43,27 @@ function logoHintergrundFarbe(wert?: string): string {
 
 const TITEL_MAX_PX = 17.6; // bisher 1.1rem
 const TITEL_MIN_PX = 11;
+// Einzeilig nicht kleiner als das; sonst lieber zwei Zeilen (lange Namen am Handy)
+const TITEL_EINZEILIG_MIN_PX = 13;
+const TITEL_ZWEIZEILIG_MAX_PX = 15;
+const TITEL_ZEILENHOEHE = 1.15;
 
-// Verkleinert die Titelschrift schrittweise, bis der Text in den verfuegbaren
-// Platz passt (min. TITEL_MIN_PX, darunter kuerzt Ionic mit "…"). Reagiert
-// auf Drehen und Groessenaenderungen.
+// Zwei Zeilen fuer den Namen ein-/ausschalten (am Span, die Ionic-Huelle
+// bleibt unveraendert).
+function zweiZeilen(text: HTMLSpanElement, an: boolean) {
+  const st = text.style as CSSStyleDeclaration & { webkitLineClamp: string; webkitBoxOrient: string };
+  st.whiteSpace = an ? 'normal' : '';
+  st.display = an ? '-webkit-box' : '';
+  st.webkitLineClamp = an ? '2' : '';
+  st.webkitBoxOrient = an ? 'vertical' : '';
+  st.overflow = an ? 'hidden' : '';
+  st.lineHeight = an ? String(TITEL_ZEILENHOEHE) : '';
+}
+
+// Verkleinert die Titelschrift schrittweise, bis der Text in eine Zeile passt
+// (bis TITEL_EINZEILIG_MIN_PX). Passt er dann noch nicht, bricht er auf zwei
+// Zeilen um (ab TITEL_ZWEIZEILIG_MAX_PX kleiner bis TITEL_MIN_PX, darunter
+// kuerzt er mit "…"). Reagiert auf Drehen und Groessenaenderungen.
 function useTitelEinpassen(title: string) {
   const titleRef = useRef<HTMLIonTitleElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
@@ -62,9 +80,23 @@ function useTitelEinpassen(title: string) {
       const verfuegbar =
         titel.getBoundingClientRect().width - parseFloat(stil.paddingLeft) - parseFloat(stil.paddingRight) - 1;
       const zuBreit = () => text.getBoundingClientRect().width > verfuegbar;
+      zweiZeilen(text, false);
       let groesse = TITEL_MAX_PX;
       titel.style.fontSize = `${groesse}px`;
-      while (groesse - 0.5 >= TITEL_MIN_PX && zuBreit()) {
+      while (groesse - 0.5 >= TITEL_EINZEILIG_MIN_PX && zuBreit()) {
+        groesse -= 0.5;
+        titel.style.fontSize = `${groesse}px`;
+      }
+      if (!zuBreit()) return;
+
+      // Zwei Zeilen: kleiner, bis der Name in zwei Zeilen passt und kein
+      // Wort breiter ist als der Platz.
+      zweiZeilen(text, true);
+      const zuGross = () =>
+        text.scrollHeight > groesse * TITEL_ZEILENHOEHE * 2 + 1 || text.scrollWidth > text.clientWidth + 1;
+      groesse = TITEL_ZWEIZEILIG_MAX_PX;
+      titel.style.fontSize = `${groesse}px`;
+      while (groesse - 0.5 >= TITEL_MIN_PX && zuGross()) {
         groesse -= 0.5;
         titel.style.fontSize = `${groesse}px`;
       }
@@ -100,8 +132,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
         <IonTitle ref={titleRef} style={s.title}><span ref={textRef}>{title}</span></IonTitle>
         <IonButtons slot="end">
-          <div style={{ marginRight: 8 }}>
-            <LanguageSwitcher variant="light" />
+          <InstallKnopf themaFarbe={themaFarbe} />
+          <div style={{ marginRight: 6 }}>
+            <LanguageSwitcher variant="light" kompakt />
           </div>
           {sponsorLogoUrl && (
             <div style={s.endSlot}>

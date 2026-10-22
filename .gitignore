@@ -1,2 +1,4 @@
 node_modules
 build
+# Netlify CLI (lokale Verknuepfung, nie committen)
+.netlify/
