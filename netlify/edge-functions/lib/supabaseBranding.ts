@@ -5,6 +5,8 @@ import { abrufMitWiederholung } from "./supabaseAbruf.ts";
 const FIELD_MAP: Record<string, string> = {
   verein_name: "Verein_Name",
   thema_farbe: "Thema_Farbe",
+  // Akzentfarbe für Knöpfe, wenn die Vereinsfarbe zu dunkel ist (wie Website).
+  akzent_farbe: "Akzent_Farbe",
   logo_verein: "Logo_Verein",
   // Hintergrund hinter dem Vereinslogo (hell/dunkel/ohne), wie auf der Website.
   logo_hintergrund: "Logo_Hintergrund",
