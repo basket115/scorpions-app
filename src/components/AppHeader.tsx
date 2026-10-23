@@ -9,6 +9,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
 import { logoOhneRand } from '../utils/logo';
 import InstallKnopf from './InstallKnopf';
+import { AkzentFarben } from '../utils/akzentfarbe';
 
 interface AppHeaderProps {
   title: string;
@@ -16,6 +17,8 @@ interface AppHeaderProps {
   logoHintergrund?: string;
   sponsorLogoUrl?: string;
   themaFarbe?: string;
+  // Knöpfe in Fenstern (Kopfzeile selbst bleibt themaFarbe)
+  akzent?: AkzentFarben;
   onRefresh?: () => void | Promise<void>;
   loading?: boolean;
   onAdminClick?: () => void;
@@ -112,7 +115,7 @@ function useTitelEinpassen(title: string) {
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
-  title, logoUrl, logoHintergrund, sponsorLogoUrl, themaFarbe, onRefresh, loading, onAdminClick
+  title, logoUrl, logoHintergrund, sponsorLogoUrl, themaFarbe, akzent, onRefresh, loading, onAdminClick
 }) => {
   const { t } = useLanguage();
   const { titleRef, textRef } = useTitelEinpassen(title);
@@ -132,7 +135,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
         <IonTitle ref={titleRef} style={s.title}><span ref={textRef}>{title}</span></IonTitle>
         <IonButtons slot="end">
-          <InstallKnopf themaFarbe={themaFarbe} />
+          <InstallKnopf themaFarbe={themaFarbe} akzent={akzent} />
           <div style={{ marginRight: 6 }}>
             <LanguageSwitcher variant="light" kompakt />
           </div>

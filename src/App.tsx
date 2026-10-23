@@ -6,6 +6,7 @@ import { useLanguage } from './i18n/LanguageContext';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
 import { resolveCustomerId, noCustomerText } from './utils/customer';
 import { appSymbol, logoOhneRand } from './utils/logo';
+import { akzentFarben } from './utils/akzentfarbe';
 import { anmelden, abmelden, hatSitzung, loginKopf, passwortVergessenAdresse } from './utils/vereinsLogin';
 
 export const BrandingContext = createContext<any>(null);
@@ -341,6 +342,8 @@ const handleTeamLogin = async () => {
   const showGear = !isReadOnly;
 
   const themaFarbe = branding?.Thema_Farbe || '#111111';
+  // Einloggen-Knopf: mit Akzentfarbe wie die Website-Knöpfe, sonst weiß wie bisher.
+  const akzent = akzentFarben(themaFarbe, branding?.Akzent_Farbe);
   const logoUrl = branding?.Logo_verein || branding?.Logo_Verein || '';
   // Anmeldebildschirm: Vereinslogo (wie Kopfzeile und Website), nur ohne
   // Logo das eigene App-Icon.
@@ -465,7 +468,7 @@ if (loading && !branding) {
             </>)}
             {teamError && <p style={{ color: '#ffcccc', margin: 0, fontSize: 14 }}>{teamError}</p>}
             <button onClick={anmeldeWeg === 'email' ? handleEmailLogin : handleTeamLogin} disabled={teamLoading}
-              style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: 'white', color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
+              style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: akzent.aktiv ? akzent.flaeche : 'white', color: akzent.aktiv ? akzent.schrift : themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', opacity: teamLoading ? 0.7 : 1 }}>
               {teamLoading ? t('btn_login_laeuft', 'Einloggen...') : t('btn_login', 'Einloggen')}
             </button>
             <button onClick={() => { setShowTeamLogin(false); setTeamLoginDone(true); }}

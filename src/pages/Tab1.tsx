@@ -8,6 +8,7 @@ import { apiGet } from '../utils/api';
 import { resolveCustomerId } from '../utils/customer';
 import BeitragsText from '../components/BeitragsText';
 import { loginKopf } from '../utils/vereinsLogin';
+import { akzentFarben, AkzentFarben } from '../utils/akzentfarbe';
 
 const API_EXEC_URL =
   '/api/proxy'
@@ -254,7 +255,7 @@ function fehlerTextFuer(d: any, t: (k: string, f?: string) => string): string {
   return String(d?.error || t('error_unbekannt', 'Unbekannt'));
 }
 
-const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onClose, themaFarbe }) => {
+const InfoPopup: React.FC<{ onClose: () => void; akzent: AkzentFarben }> = ({ onClose, akzent }) => {
   const { t } = useLanguage();
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
@@ -263,7 +264,7 @@ const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onCl
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('lbl_bild_url_anleitung', '📸 Bild-URL Anleitung')}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#999' }}>×</button>
         </div>
-        <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>{t('btn_verstanden', 'Verstanden ✓')}</button>
+        <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: akzent.flaeche, color: akzent.schrift, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>{t('btn_verstanden', 'Verstanden ✓')}</button>
       </div>
     </div>
   );
@@ -271,7 +272,7 @@ const InfoPopup: React.FC<{ onClose: () => void; themaFarbe: string }> = ({ onCl
 
 // kategorieFest: beim Unteradmin ist die Kategorie nicht wählbar (der Proxy
 // würde eine Änderung ohnehin ignorieren).
-const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; kategorien: string[]; kategorieFest?: boolean; onClose: () => void; onSaved: (updated: any) => void }> = ({ beitrag, themaFarbe, kundenId, kategorien, kategorieFest, onClose, onSaved }) => {
+const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; akzent: AkzentFarben; kundenId: string; kategorien: string[]; kategorieFest?: boolean; onClose: () => void; onSaved: (updated: any) => void }> = ({ beitrag, themaFarbe, akzent, kundenId, kategorien, kategorieFest, onClose, onSaved }) => {
   const { t } = useLanguage();
   const [titel, setTitel] = useState(beitrag.Titel || '');
   const [text, setText] = useState(beitrag.Text || '');
@@ -339,7 +340,7 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; kundenId: string; 
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 15, color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
-          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe, color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: akzent.flaeche, color: akzent.schrift, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
             {saving ? t('btn_speichern_laeuft', 'Speichern...') : t('btn_speichern', '💾 Speichern')}
           </button>
         </div>
@@ -354,16 +355,21 @@ const KategorienDropdown: React.FC<{
   selected: string;
   onSelect: (k: string) => void;
   themaFarbe: string;
-}> = ({ kategorien, selected, onSelect, themaFarbe }) => {
+  akzent: AkzentFarben;
+}> = ({ kategorien, selected, onSelect, themaFarbe, akzent }) => {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const label = selected ? translateKategorie(selected, t) : t('lbl_alle_abteilungen', 'Alle Abteilungen');
+  // Mit Akzentfarbe: Fläche in Akzentfarbe (wie Website-Knöpfe), sonst wie bisher weiß mit Rand.
+  const knopfFlaeche = akzent.aktiv ? akzent.flaeche : 'white';
+  const knopfSchrift = akzent.aktiv ? akzent.schrift : themaFarbe;
+  const knopfRand = akzent.aktiv ? akzent.flaeche : themaFarbe;
   return (
     <div style={{ position: 'relative', marginBottom: 12 }}>
       <button onClick={() => setOpen(o => !o)}
-        style={{ width: "100%", padding: "14px 18px", borderRadius: 10, border: `2px solid ${themaFarbe}`, background: "white", color: themaFarbe, fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
+        style={{ width: "100%", padding: "14px 18px", borderRadius: 10, border: `2px solid ${knopfRand}`, background: knopfFlaeche, color: knopfSchrift, fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
         <span>{label}</span>
-        <span style={{ color: themaFarbe, fontSize: 18 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ color: knopfSchrift, fontSize: 18 }}>{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 100, overflow: 'hidden', marginTop: 4 }}>
@@ -450,6 +456,8 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
   const b = branding as any;
   const themaFarbe = b?.Thema_Farbe || '#b30000';
+  // Knöpfe und Hervorhebungen: Akzentfarbe wie auf der Website (Kopf- und Fußzeile bleiben themaFarbe).
+  const akzent = useMemo(() => akzentFarben(themaFarbe, b?.Akzent_Farbe), [themaFarbe, b?.Akzent_Farbe]);
   const logoUrl = b?.Logo_verein || b?.Logo_Verein || '';
   const sponsorLogoUrl = b?.Logo_Sponsor || b?.Logo_sponsor || '';
   const kundenId: string = String(branding?.Kunden_ID || '').trim();
@@ -685,18 +693,18 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      {showBildInfo && <InfoPopup onClose={() => setShowBildInfo(false)} themaFarbe={themaFarbe} />}
-      {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} kundenId={kundenId} kategorien={kategorienFinal} kategorieFest={isTeam} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
+      {showBildInfo && <InfoPopup onClose={() => setShowBildInfo(false)} akzent={akzent} />}
+      {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} akzent={akzent} kundenId={kundenId} kategorien={kategorienFinal} kategorieFest={isTeam} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
 
-      <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} logoHintergrund={b?.Logo_Hintergrund} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
+      <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} logoHintergrund={b?.Logo_Hintergrund} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} akzent={akzent} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 16, backgroundColor: '#f0f0f0' }}>
         {teamRolle && (
-          <div style={{ background: themaFarbe, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>
+          <div style={{ background: akzent.flaeche, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: akzent.schrift, fontWeight: 700, fontSize: 14 }}>
               {teamRolle === 'admin' ? t('lbl_rolle_hauptadmin', '👑 Hauptadmin') : [t('lbl_rolle_unteradmin', 'Unteradmin'), translateKategorie(teamMannschaft, t)].filter(Boolean).join(' · ')}
             </span>
-            <button onClick={handleTeamLogout} style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
+            <button onClick={handleTeamLogout} style={{ background: akzent.hell ? 'rgba(17,17,17,0.12)' : 'rgba(255,255,255,0.2)', border: akzent.hell ? '1px solid rgba(17,17,17,0.3)' : '1px solid rgba(255,255,255,0.4)', color: akzent.schrift, borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>{t('btn_abmelden', 'Abmelden')}</button>
           </div>
         )}
         {demoTage && (
@@ -725,12 +733,13 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             selected={activeKategorie}
             onSelect={setActiveKategorie}
             themaFarbe={themaFarbe}
+            akzent={akzent}
           />
         )}
 
         {canPost && !showForm && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: themaFarbe, border: 'none', color: 'white', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>{t('btn_neuer_beitrag', '⊕ NEUEN BEITRAG ERSTELLEN')}</button>
+            <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: 14, borderRadius: 10, backgroundColor: akzent.flaeche, border: 'none', color: akzent.schrift, fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}>{t('btn_neuer_beitrag', '⊕ NEUEN BEITRAG ERSTELLEN')}</button>
           </div>
         )}
         {canPost && showForm && (
@@ -755,7 +764,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             {success && <p style={{ color: 'green' }}>{success}</p>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #ccc', backgroundColor: 'white', cursor: 'pointer', color: '#111' }}>{t('btn_abbrechen', 'Abbrechen')}</button>
-              <button onClick={handleSubmit} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: themaFarbe, color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>{saving ? t('btn_publish_laeuft', 'Speichern...') : t('btn_publish', 'Veröffentlichen')}</button>
+              <button onClick={handleSubmit} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', backgroundColor: akzent.flaeche, color: akzent.schrift, fontWeight: 'bold', cursor: 'pointer' }}>{saving ? t('btn_publish_laeuft', 'Speichern...') : t('btn_publish', 'Veröffentlichen')}</button>
             </div>
           </div>
         )}
@@ -780,7 +789,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
               <div key={bId || i} style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', position: 'relative' }}>
                 {darfLoeschen && (
                   <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6, zIndex: 1 }}>
-                    <button onClick={() => setEditBeitrag(beitrag)} style={{ background: themaFarbe, color: 'white', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 13, cursor: 'pointer', fontWeight: 'bold' }}>✏️</button>
+                    <button onClick={() => setEditBeitrag(beitrag)} style={{ background: akzent.flaeche, color: akzent.schrift, border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 13, cursor: 'pointer', fontWeight: 'bold' }}>✏️</button>
                     <button onClick={() => handleDelete(beitrag)} disabled={isDeleting} style={{ background: isDeleting ? '#ccc' : '#ff4444', color: 'white', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 13, cursor: isDeleting ? 'default' : 'pointer', fontWeight: 'bold' }}>{isDeleting ? '...' : '🗑️'}</button>
                   </div>
                 )}
@@ -813,7 +822,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                   </div>
                 )}
                 {buttonLabel && buttonUrl && (
-                  <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: themaFarbe, color: 'white', borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
+                  <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: akzent.flaeche, color: akzent.schrift, borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
                 )}
                 <SocialBar b={b} />
                 {kundenId && <SponsorBanner kundenId={kundenId} initialSponsoren={bootstrapSponsoren} startIndex={i} />}

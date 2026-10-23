@@ -6,6 +6,7 @@ import { IonButton, IonIcon } from '@ionic/react';
 import { downloadOutline } from 'ionicons/icons';
 import { useLanguage } from '../i18n/LanguageContext';
 import { aktuelleInstallArt, beiAenderung, oeffneInstallFenster, InstallArt } from '../utils/pwa';
+import { AkzentFarben } from '../utils/akzentfarbe';
 
 const s: Record<string, React.CSSProperties> = {
   knopf: { color: 'white' },
@@ -17,7 +18,7 @@ const s: Record<string, React.CSSProperties> = {
   text: { margin: 0, fontSize: 15, lineHeight: 1.5 },
 };
 
-const InstallKnopf: React.FC<{ themaFarbe?: string }> = ({ themaFarbe }) => {
+const InstallKnopf: React.FC<{ themaFarbe?: string; akzent?: AkzentFarben }> = ({ themaFarbe, akzent }) => {
   const { t } = useLanguage();
   const [art, setArt] = useState<InstallArt>(() => aktuelleInstallArt());
   const [anleitung, setAnleitung] = useState(false);
@@ -53,7 +54,7 @@ const InstallKnopf: React.FC<{ themaFarbe?: string }> = ({ themaFarbe }) => {
                   ? t('install_anleitung_inapp', 'Öffnen Sie diese Seite in Safari bzw. Chrome, um die App zu installieren.')
                   : t('install_anleitung_firefox', 'Tippen Sie auf das Menü (⋮) und dann auf „Installieren“.')}
             </p>
-            <button onClick={schliessen} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: themaFarbe || '#111111', color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+            <button onClick={schliessen} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: 'none', background: akzent?.flaeche || themaFarbe || '#111111', color: akzent?.schrift || 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
               {t('btn_verstanden', 'Verstanden ✓')}
             </button>
           </div>

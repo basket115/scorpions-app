@@ -9,6 +9,7 @@ const ERLAUBTE_FELDER: readonly string[] = [
   "App_Icon_192",
   "App_Icon_512",
   "Thema_Farbe",
+  "Akzent_Farbe",
   "Logo_Verein",
   "Logo_verein",
   "Logo_Hintergrund",
