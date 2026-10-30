@@ -20,6 +20,7 @@ import {
   leseFehler,
   type LeseFehler,
 } from "./lib/supabaseAbruf.ts";
+import { zaehleImHintergrund } from "./lib/nutzungZaehlen.ts";
 
 // Alle Daten kommen nur aus Supabase. Es gibt keinen GAS-Rueckfall mehr
 // (alle Kunden stehen in Supabase, Entscheidung 14.10.2026).
@@ -388,6 +389,12 @@ export default async (request: Request, context: Context) => {
 
       const branding = filterBranding(supabaseBranding);
       if (!brandingVollstaendig(branding)) return vereinsnameFehlt(kundenId);
+
+      // Ein App-Start = ein erfolgreiches get_bootstrap der App (ohne kanal;
+      // das Beitragsfenster /embed fragt mit kanal=website und zaehlt nicht).
+      // Nur Kunden-ID und Zahl (nutzung_tag, Kanal "app"), die Antwort
+      // wartet nie darauf.
+      if (!url.searchParams.has("kanal")) zaehleImHintergrund(context, kundenId, "app");
 
       return jsonAntwort({
         success: true,
