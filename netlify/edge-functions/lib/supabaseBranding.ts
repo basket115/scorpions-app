@@ -82,6 +82,49 @@ export async function fetchSupabaseBranding(
   }
 }
 
+// Links zu Impressum und Datenschutz des Vereins fuer den Fuss der App: ein
+// fertiger Text aus dem Admin (Seite verein-recht.html, Regel wie dort: kein
+// offener Platzhalter "[[") geht vor dem eingetragenen Link. Leer = kein Link.
+// Fehlen die Text-Spalten noch (SQL 040), gelten nur die Links. Wirft nie.
+export function rechtLinksAus(kundenId: string, zeile: Record<string, unknown> | undefined): Record<string, string> {
+  const links: Record<string, string> = {};
+  for (const [seite, feld] of [["impressum", "Impressum_Link"], ["datenschutz", "Datenschutz_Link"]]) {
+    const text = String(zeile?.[`${seite}_text`] ?? "").trim();
+    const link = String(zeile?.[`${seite}_url`] ?? "").trim();
+    if (text && !text.includes("[[")) {
+      links[feld] = `https://app.onlang.de/verein-recht.html?kunde=${encodeURIComponent(kundenId)}&seite=${seite}`;
+    } else if (/^https:\/\/\S+$/i.test(link)) {
+      links[feld] = link;
+    }
+  }
+  return links;
+}
+
+export async function fetchRechtLinks(kundenId: string): Promise<Record<string, string>> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!kundenId || !supabaseUrl || !supabaseAnonKey) return {};
+  const lese = async (spalten: string) => {
+    const antwort = await fetch(
+      `${supabaseUrl}/rest/v1/website_einstellungen?kunden_id=eq.${encodeURIComponent(kundenId)}&select=${spalten}`,
+      { headers: { apikey: supabaseAnonKey, Authorization: `Bearer ${supabaseAnonKey}` }, signal: AbortSignal.timeout(4000) },
+    );
+    if (!antwort.ok) {
+      await antwort.body?.cancel();
+      return null;
+    }
+    const zeilen = await antwort.json();
+    return Array.isArray(zeilen) ? zeilen as Record<string, unknown>[] : null;
+  };
+  try {
+    const zeilen = await lese("impressum_url,datenschutz_url,impressum_text,datenschutz_text") ??
+      await lese("impressum_url,datenschutz_url");
+    return rechtLinksAus(kundenId, zeilen?.[0]);
+  } catch {
+    return {};
+  }
+}
+
 // Prueft, ob ein Kunde in Supabase gefuehrt wird (Zeile in "kunden").
 // true/false bei erfolgreicher Anfrage, null nur bei technischem Fehler
 // (fehlende Env-Vars, Netzwerk, Timeout auch beim zweiten Versuch).

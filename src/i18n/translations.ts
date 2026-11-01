@@ -107,6 +107,8 @@ export const translations: Record<string, TranslationRow> = {
   btn_publish: { de: 'Veröffentlichen', hu: 'Közzététel', en: 'Publish' },
   hinweis_keine_eintraege: { de: 'Noch keine Beiträge.', hu: 'Még nincsenek bejegyzések.', en: 'No posts yet.' },
   lbl_nutzungsbedingungen: { de: '📋 Nutzungsbedingungen', hu: '📋 Felhasználási feltételek', en: '📋 Terms of use' },
+  lbl_impressum: { de: '⚖️ Impressum', hu: '⚖️ Impresszum', en: '⚖️ Legal notice' },
+  lbl_datenschutz: { de: '🔒 Datenschutz', hu: '🔒 Adatvédelem', en: '🔒 Privacy' },
   lbl_bildverwaltung: { de: '📸 Bildverwaltung', hu: '📸 Képkezelés', en: '📸 Image management' },
 
   // ── Tab1.tsx: Kategorien (nur bekannte, im Kunden_Master gepflegte

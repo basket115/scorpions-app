@@ -1,5 +1,5 @@
 import type { Context } from "https://edge.netlify.com";
-import { fetchSupabaseBranding, istSupabaseKunde } from "./lib/supabaseBranding.ts";
+import { fetchRechtLinks, fetchSupabaseBranding, istSupabaseKunde } from "./lib/supabaseBranding.ts";
 import { beitragsKanal, fetchSupabaseBeitraege } from "./lib/supabaseBeitraege.ts";
 import { fetchSupabaseSponsoren } from "./lib/supabaseSponsoren.ts";
 import { fetchSupabaseHasTeamLogin, fetchSupabaseTeamRole } from "./lib/supabaseTeamZugaenge.ts";
@@ -377,11 +377,12 @@ export default async (request: Request, context: Context) => {
       const kundenId = url.searchParams.get("kundenId") || "";
       // Das Beitragsfenster /embed fragt mit kanal=website, die App ohne (= app).
       const kanal = beitragsKanal(url.searchParams.get("kanal"));
-      const [imSupabase, supabaseBranding, supabaseBeitraege, supabaseSponsoren] = await Promise.all([
+      const [imSupabase, supabaseBranding, supabaseBeitraege, supabaseSponsoren, rechtLinks] = await Promise.all([
         istSupabaseKunde(kundenId),
         fetchSupabaseBranding(kundenId),
         fetchSupabaseBeitraege(kundenId, kanal),
         fetchSupabaseSponsoren(kundenId),
+        fetchRechtLinks(kundenId),
       ]);
 
       const fehler = leseFehler(imSupabase, [supabaseBranding, supabaseBeitraege, supabaseSponsoren]);
@@ -399,7 +400,7 @@ export default async (request: Request, context: Context) => {
       return jsonAntwort({
         success: true,
         kundenId,
-        branding,
+        branding: { ...branding, ...rechtLinks },
         beitraege: supabaseBeitraege,
         sponsors: supabaseSponsoren,
       });
