@@ -82,16 +82,74 @@ export async function fetchSupabaseBranding(
   }
 }
 
+// Platzhalter der Vorlagen wie in onlang-web (lib/rechtstexte.ts, RECHT_PLATZHALTER):
+// aendert sich dort die Liste, hier mitaendern.
+const RECHT_PLATZHALTER = [
+  "Vereinsname",
+  "Straße und Hausnummer",
+  "Postleitzahl und Ort",
+  "Name(n) des Vorstands",
+  "Amtsgericht",
+  "VR-Nummer",
+  "E-Mail-Adresse",
+  "Telefonnummer",
+  "Name und Anschrift",
+  "Az egyesület neve",
+  "irányítószám, település, utca, házszám",
+  "A képviselő(k) neve",
+  "bíróság neve",
+  "nyilvántartási szám",
+  "e-mail-cím",
+  "telefonszám",
+  "név és cím",
+  "Name of the club",
+  "Street and number",
+  "Postcode and town",
+  "Name(s) of the board members",
+  "court",
+  "number",
+  "e-mail address",
+  "phone number",
+  "name and address",
+  "Vereinsname, Anschrift",
+  "Falls vorhanden: Datenschutzbeauftragte/r mit Kontakt, sonst diese Zeile löschen",
+  "Bitte ergänzen: z. B. Mitgliederdaten, Fotos und Spielberichte von Mannschaften, Kontaktanfragen, jeweils mit Zweck und Rechtsgrundlage",
+  "zuständige Aufsichtsbehörde",
+  "Az egyesület neve, címe",
+  "Ha van: adatvédelmi tisztviselő és elérhetősége, ha nincs, törölje ezt a sort",
+  "Kérjük, egészítse ki: pl. tagok adatai, csapatok fotói és mérkőzésbeszámolói, megkeresések, mindegyiknél a cél és a jogalap",
+  "illetékes hatóság, Magyarországon: NAIH",
+  "Name and address of the club",
+  "If any: data protection officer with contact details, otherwise delete this line",
+  "Please add: e.g. member data, team photos and match reports, enquiries, each with purpose and legal basis",
+  "competent authority",
+];
+const normZeile = (wert: string) =>
+  wert.replace(/\[\[|\]\]/g, " ").toLowerCase().replace(/ß/g, "ss").replace(/\s+/g, " ").trim().replace(/[.,;:]+$/, "").trim();
+const PLATZHALTER_NORM = new Set(RECHT_PLATZHALTER.map(normZeile));
+
+// Fertig = kein Text aus der Vorlage mehr, Regel wie auf verein-recht.html.
+export function rechtstextFertig(text: string): boolean {
+  if (!text.trim()) return false;
+  return !text.split("\n").map((z) => z.trim()).some((zeile) => {
+    if (!zeile) return false;
+    if (zeile.includes("[[") || /^(entwurf|tervezet|draft)\b/i.test(zeile)) return true;
+    const doppelpunkt = zeile.indexOf(":");
+    return PLATZHALTER_NORM.has(normZeile(zeile)) ||
+      (doppelpunkt >= 0 && PLATZHALTER_NORM.has(normZeile(zeile.slice(doppelpunkt + 1))));
+  });
+}
+
 // Links zu Impressum und Datenschutz des Vereins fuer den Fuss der App: ein
-// fertiger Text aus dem Admin (Seite verein-recht.html, Regel wie dort: kein
-// offener Platzhalter "[[") geht vor dem eingetragenen Link. Leer = kein Link.
+// fertiger Text aus dem Admin (Seite verein-recht.html) geht vor dem
+// eingetragenen Link. Leer = kein Link.
 // Fehlen die Text-Spalten noch (SQL 040), gelten nur die Links. Wirft nie.
 export function rechtLinksAus(kundenId: string, zeile: Record<string, unknown> | undefined): Record<string, string> {
   const links: Record<string, string> = {};
   for (const [seite, feld] of [["impressum", "Impressum_Link"], ["datenschutz", "Datenschutz_Link"]]) {
     const text = String(zeile?.[`${seite}_text`] ?? "").trim();
     const link = String(zeile?.[`${seite}_url`] ?? "").trim();
-    if (text && !text.includes("[[")) {
+    if (rechtstextFertig(text)) {
       links[feld] = `https://app.onlang.de/verein-recht.html?kunde=${encodeURIComponent(kundenId)}&seite=${seite}`;
     } else if (/^https:\/\/\S+$/i.test(link)) {
       links[feld] = link;
