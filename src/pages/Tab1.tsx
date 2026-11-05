@@ -830,16 +830,16 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
             );
           })
         )}
-      </div>
 
-      {/* Footer */}
-      <div style={{ background: themaFarbe, padding: '16px 16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const, flexShrink: 0 }}>
+      {/* Footer: am Ende des Inhalts (scrollt mit), nicht fest am unteren Rand */}
+      <div style={{ background: themaFarbe, padding: '16px 16px', margin: '24px -16px -16px', display: 'flex', justifyContent: 'center', gap: 20, flexWrap: 'wrap' as const }}>
         {branding?.Impressum_Link && <a href={branding.Impressum_Link} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_impressum')}</a>}
         {branding?.Datenschutz_Link && <a href={branding.Datenschutz_Link} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_datenschutz')}</a>}
         <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_nutzungsbedingungen', '📋 Nutzungsbedingungen')}</a>
         <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_bildverwaltung', '📸 Bildverwaltung')}</a>
         <a href="mailto:info@onlang.de" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>✉️ info@onlang.de</a>
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600 }}>© 2026 ONLANG</span>
+      </div>
       </div>
     </div>
   );

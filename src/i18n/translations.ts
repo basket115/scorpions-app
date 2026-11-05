@@ -92,7 +92,7 @@ export const translations: Record<string, TranslationRow> = {
   hinweis_youtube_nicht_erkannt: { de: '⚠️ YouTube-Link nicht erkannt', hu: '⚠️ A YouTube-link nem ismerhető fel', en: '⚠️ YouTube link not recognized' },
   lbl_kategorie_auswahl: { de: 'Kategorie', hu: 'Kategória', en: 'Category' },
   btn_speichern: { de: '💾 Speichern', hu: '💾 Mentés', en: '💾 Save' },
-  lbl_alle_abteilungen: { de: 'Alle Abteilungen', hu: 'Minden szakosztály', en: 'All departments' },
+  lbl_alle_abteilungen: { de: 'Alle Abteilungen', hu: 'Csapataink', en: 'All departments' },
   status_beitrag_gespeichert: { de: '✅ Beitrag gespeichert!', hu: '✅ Bejegyzés mentve!', en: '✅ Post saved!' },
   error_keine_id: { de: 'Keine ID.', hu: 'Nincs azonosító.', en: 'No ID.' },
   lbl_rolle_hauptadmin: { de: '👑 Hauptadmin', hu: '👑 Főadminisztrátor', en: '👑 Main admin' },
