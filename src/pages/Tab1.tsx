@@ -560,6 +560,15 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         x.Erstellt_Am ||
         '',
 
+      // SQL 057: Spieltag und Spielbeginn (leer = kein Spiel angegeben)
+      Spiel_Datum:
+        x.Spiel_Datum ||
+        '',
+
+      Spiel_Uhrzeit:
+        x.Spiel_Uhrzeit ||
+        '',
+
       Kategorie:
         x.Kategorie ||
         'News'
@@ -814,6 +823,12 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
 </div>
 )}
                 <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {formatBeitragDatum(beitrag.Datum, lang)}</div>
+                {/^\d{4}-\d{2}-\d{2}/.test(String(beitrag.Spiel_Datum || '')) && (
+                  <div style={{ fontSize: 13, color: '#666', fontWeight: 600, marginTop: -2, marginBottom: 8 }}>
+                    🏀 {t('spiel_am')}: {formatBeitragDatum(String(beitrag.Spiel_Datum).slice(0, 10), lang)}
+                    {/^\d{2}:\d{2}/.test(String(beitrag.Spiel_Uhrzeit || '')) ? ' · ' + String(beitrag.Spiel_Uhrzeit).slice(0, 5) : ''}
+                  </div>
+                )}
                 <h3 style={{ margin: '0 0 10px 0', fontSize: 24, lineHeight: 1.25, color: '#222', paddingRight: darfLoeschen ? 90 : 0 }}>{beitrag.Titel}</h3>
                 <BeitragsText text={beitrag.Text} titel={beitrag.Titel} />
                 {embedUrl && (

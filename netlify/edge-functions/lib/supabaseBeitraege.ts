@@ -9,6 +9,9 @@ const FIELD_MAP: Record<string, string> = {
   video_url: "Video_URL",
   kategorie: "Kategorie",
   datum: "Datum",
+  // SQL 057: Spieltag und Spielbeginn (freiwillig, zusaetzlich zum Datum)
+  spiel_datum: "Spiel_Datum",
+  spiel_uhrzeit: "Spiel_Uhrzeit",
 };
 
 type SupabaseBeitragRow = Record<string, unknown>;
