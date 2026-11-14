@@ -14,6 +14,7 @@ import {
 import type { Zugang } from "./lib/supabaseBeitraegeSchreiben.ts";
 import { bearerToken, pruefeEmailZugang } from "./lib/emailZugang.ts";
 import { filterBranding } from "./lib/brandingFilter.ts";
+import { fetchLiveAktiv } from "./lib/liveAktiv.ts";
 import {
   brandingVollstaendig,
   FEHLER_VEREINSNAME,
@@ -377,12 +378,14 @@ export default async (request: Request, context: Context) => {
       const kundenId = url.searchParams.get("kundenId") || "";
       // Das Beitragsfenster /embed fragt mit kanal=website, die App ohne (= app).
       const kanal = beitragsKanal(url.searchParams.get("kanal"));
-      const [imSupabase, supabaseBranding, supabaseBeitraege, supabaseSponsoren, rechtLinks] = await Promise.all([
+      const [imSupabase, supabaseBranding, supabaseBeitraege, supabaseSponsoren, rechtLinks, liveAktiv] = await Promise.all([
         istSupabaseKunde(kundenId),
         fetchSupabaseBranding(kundenId),
         fetchSupabaseBeitraege(kundenId, kanal),
         fetchSupabaseSponsoren(kundenId),
         fetchRechtLinks(kundenId),
+        // Live-Knopf (14.11.2026): nur true/false, wirft nie.
+        fetchLiveAktiv(kundenId),
       ]);
 
       const fehler = leseFehler(imSupabase, [supabaseBranding, supabaseBeitraege, supabaseSponsoren]);
@@ -400,7 +403,7 @@ export default async (request: Request, context: Context) => {
       return jsonAntwort({
         success: true,
         kundenId,
-        branding: { ...branding, ...rechtLinks },
+        branding: { ...branding, ...rechtLinks, Live_Aktiv: liveAktiv },
         beitraege: supabaseBeitraege,
         sponsors: supabaseSponsoren,
       });

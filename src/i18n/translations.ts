@@ -16,6 +16,10 @@ export type Lang = 'de' | 'hu' | 'en';
 export type TranslationRow = { de: string; hu: string; en: string };
 
 export const translations: Record<string, TranslationRow> = {
+  // SQL 057: Zeile "🏀 Spiel: …" an Beitraegen mit Spieltag
+  spiel_am: { de: 'Spiel', hu: 'Mérkőzés', en: 'Game' },
+  // Live-Knopf im Fußbereich (nur Vereine mit Live-Zugang)
+  btn_spiel_uebertragen: { de: 'Spiel übertragen', hu: 'Mérkőzés közvetítése', en: 'Stream a game' },
   // ── App.tsx: Admin-/Team-Login ──────────────────────────────
   login_password_placeholder: { de: 'Passwort eingeben', hu: 'Jelszó megadása', en: 'Enter password' },
   status_laden: { de: 'Laden...', hu: 'Betöltés...', en: 'Loading...' },
