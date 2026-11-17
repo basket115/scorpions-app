@@ -415,6 +415,27 @@ function formatBeitragDatum(
     return `${tag.padStart(2, '0')}.${monat.padStart(2, '0')}.${jahr}`;
   }
 
+  // Zeitpunkt aus Supabase (z. B. 2026-11-17T13:30:00+00:00): Tag und
+  // Uhrzeit in deutscher/ungarischer Zeit (beide Europe/Berlin-Zeitzone).
+  // Genau 12:00:00 Weltzeit setzt das Studio, wenn nur ein früherer Tag
+  // gewählt wurde – dann gibt es keine echte Uhrzeit und es bleibt beim Tag.
+  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(raw)) {
+    const zeitpunkt = new Date(raw.replace(' ', 'T'));
+    if (!isNaN(zeitpunkt.getTime())) {
+      const teile: Record<string, string> = {};
+      for (const p of new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      }).formatToParts(zeitpunkt)) teile[p.type] = p.value;
+      const ohneUhrzeit = zeitpunkt.getUTCHours() === 12 && zeitpunkt.getUTCMinutes() === 0
+        && zeitpunkt.getUTCSeconds() === 0 && zeitpunkt.getUTCMilliseconds() === 0;
+      const tag = formatBeitragDatum(`${teile.year}-${teile.month}-${teile.day}`, lang);
+      if (ohneUhrzeit) return tag;
+      const uhr = `${teile.hour}:${teile.minute}`;
+      return lang === 'hu' ? `${tag} ${uhr}` : `${tag}, ${uhr}`;
+    }
+  }
+
   // Falls das Backend einmal 2026-08-30 oder 2026-08-30T... liefert
   match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
 
