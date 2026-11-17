@@ -10,7 +10,17 @@ const FIELD_MAP: Record<string, string> = {
   banner_bild_url: "Banner_Bild_URL",
   banner_link_url: "Banner_Link_URL",
   aktiv: "Aktiv",
+  sponsor_level: "Sponsor_Level",
 };
+
+// Sponsoren-Stufen (SQL 058, 17.11.2026): hervorgehoben (alt: premium) zuerst,
+// dann gold, silber, dann ohne Stufe. Innerhalb gleicher Stufe bleibt die
+// Reihenfolge der Abfrage (position, id).
+const STUFEN_RANG: Record<string, number> = { premium: 0, hervorgehoben: 0, gold: 1, silber: 2 };
+export function stufenRang(wert: unknown): number {
+  const s = String(wert ?? "").trim().toLowerCase();
+  return s in STUFEN_RANG ? STUFEN_RANG[s] : 3;
+}
 
 type SupabaseSponsorRow = Record<string, unknown>;
 
@@ -56,7 +66,10 @@ export async function fetchSupabaseSponsoren(
     const rows = (await response.json()) as SupabaseSponsorRow[];
     if (!Array.isArray(rows)) return null;
 
-    return rows.filter((row) => !hatSlot(row)).map((row) => {
+    return rows.filter((row) => !hatSlot(row))
+      .map((row, i) => ({ row, i }))
+      .sort((a, b) => stufenRang(a.row.sponsor_level) - stufenRang(b.row.sponsor_level) || a.i - b.i)
+      .map(({ row }) => {
       const sponsor: Record<string, unknown> = { id: row.id };
       for (const [supabaseField, appField] of Object.entries(FIELD_MAP)) {
         const value = row[supabaseField];

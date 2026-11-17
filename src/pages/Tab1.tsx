@@ -81,7 +81,8 @@ const BildUploadButton: React.FC<{ onUploaded: (url: string) => void; themaFarbe
   );
 };
 
-type SponsorData = { logoUrl?: string; bannerText?: string; bannerBildUrl?: string; linkUrl?: string };
+// gross = Stufe "hervorgehoben" (alt: premium): zuerst und groesser (SQL 058).
+type SponsorData = { logoUrl?: string; bannerText?: string; bannerBildUrl?: string; linkUrl?: string; gross?: boolean };
 const sponsorCache: Record<string, SponsorData[]> = {};
 const sponsorInflight: Record<string, Promise<SponsorData[]>> = {};
 
@@ -105,7 +106,8 @@ function sponsorenFromRows(rows: any[], kundenId: string): SponsorData[] {
       logoUrl: r.Logo_URL || undefined,
       bannerText: r.Banner_Text || undefined,
       bannerBildUrl: r.Banner_Bild_URL || undefined,
-      linkUrl: r.Banner_Link_URL || undefined
+      linkUrl: r.Banner_Link_URL || undefined,
+      gross: ['hervorgehoben', 'premium'].includes(String(r.Sponsor_Level || '').trim().toLowerCase())
     }));
 }
 
@@ -198,17 +200,17 @@ const SponsorBanner: React.FC<{ kundenId: string; initialSponsoren?: SponsorData
   const kasten = (s: SponsorData, extra?: React.CSSProperties, key?: number) => {
     const bannerInhalt = (
       <>
-        {s.logoUrl && <div style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 10, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, border: '1px solid #eee' }}><img src={s.logoUrl} alt="Partner Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} referrerPolicy="no-referrer" /></div>}
+        {s.logoUrl && <div style={{ flexShrink: 0, width: s.gross ? 84 : 56, height: s.gross ? 84 : 56, borderRadius: 10, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, border: '1px solid #eee' }}><img src={s.logoUrl} alt="Partner Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} referrerPolicy="no-referrer" /></div>}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {s.bannerText && <div style={{ fontSize: 13, lineHeight: 1.45, color: '#444', whiteSpace: 'pre-wrap' as const, fontWeight: 500 }}>{s.bannerText}</div>}
+          {s.bannerText && <div style={{ fontSize: s.gross ? 15 : 13, lineHeight: 1.45, color: '#444', whiteSpace: 'pre-wrap' as const, fontWeight: 500 }}>{s.bannerText}</div>}
           {s.linkUrl && <div style={{ marginTop: 6, fontSize: 12, color: '#0057B7', fontWeight: 600 }}>{t('btn_mehr_erfahren', 'Mehr erfahren →')}</div>}
         </div>
       </>
     );
     return s.linkUrl ? (
-      <a key={key} href={s.linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: '10px 14px', border: '1px solid #eee', textDecoration: 'none', ...extra }}>{bannerInhalt}</a>
+      <a key={key} href={s.linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: s.gross ? '14px 16px' : '10px 14px', border: '1px solid #eee', textDecoration: 'none', ...extra }}>{bannerInhalt}</a>
     ) : (
-      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: '10px 14px', border: '1px solid #eee', ...extra }}>{bannerInhalt}</div>
+      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8f8f8', borderRadius: 12, padding: s.gross ? '14px 16px' : '10px 14px', border: '1px solid #eee', ...extra }}>{bannerInhalt}</div>
     );
   };
 
