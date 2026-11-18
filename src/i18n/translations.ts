@@ -20,6 +20,17 @@ export const translations: Record<string, TranslationRow> = {
   spiel_am: { de: 'Spiel', hu: 'Mérkőzés', en: 'Game' },
   // Live-Knopf im Fußbereich (nur Vereine mit Live-Zugang)
   btn_spiel_uebertragen: { de: 'Spiel übertragen', hu: 'Mérkőzés közvetítése', en: 'Stream a game' },
+  // Live-Zeichen oben rechts (18.11.2026) + Fenster Zuschauen / Kamera starten
+  live_titel: { de: 'Live', hu: 'Élő', en: 'Live' },
+  live_jetzt: { de: 'Jetzt live', hu: 'Most élőben', en: 'Live now' },
+  live_kein_spiel: { de: 'Gerade läuft kein Spiel. Sie können die Seite trotzdem öffnen – das Bild erscheint, sobald die Übertragung beginnt.', hu: 'Jelenleg nincs élő mérkőzés. Az oldalt így is megnyithatja – a kép megjelenik, amint a közvetítés elindul.', en: 'No game is live right now. You can still open the page – the picture appears as soon as the stream starts.' },
+  btn_live_zuschauen: { de: 'Zuschauen', hu: 'Nézem', en: 'Watch' },
+  live_zuschauen_hinweis: { de: 'Ohne Anmeldung, für alle.', hu: 'Bejelentkezés nélkül, mindenkinek.', en: 'No sign-in, open to everyone.' },
+  btn_live_kamera: { de: 'Kamera starten', hu: 'Kamera indítása', en: 'Start camera' },
+  live_kamera_hinweis: { de: 'Nur für den Verein: Anmeldung mit dem Live-Zugang.', hu: 'Csak az egyesületnek: bejelentkezés az élő hozzáféréssel.', en: 'Club only: sign in with the live access.' },
+  // Neu laden durch nach unten ziehen (ersetzt den Knopf oben rechts)
+  ziehen_weiter: { de: 'Nach unten ziehen zum Aktualisieren', hu: 'Húzza lefelé a frissítéshez', en: 'Pull down to refresh' },
+  ziehen_loslassen: { de: 'Loslassen zum Aktualisieren', hu: 'Engedje el a frissítéshez', en: 'Release to refresh' },
   // ── App.tsx: Admin-/Team-Login ──────────────────────────────
   login_password_placeholder: { de: 'Passwort eingeben', hu: 'Jelszó megadása', en: 'Enter password' },
   status_laden: { de: 'Laden...', hu: 'Betöltés...', en: 'Loading...' },

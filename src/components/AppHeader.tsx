@@ -2,13 +2,14 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import {
   IonHeader, IonToolbar, IonTitle,
-  IonButtons, IonButton, IonIcon, IonSpinner,
+  IonButtons, IonButton, IonIcon,
 } from '@ionic/react';
-import { refreshOutline, settingsOutline } from 'ionicons/icons';
+import { settingsOutline } from 'ionicons/icons';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
 import { logoOhneRand } from '../utils/logo';
 import InstallKnopf from './InstallKnopf';
+import LiveZeichen from './LiveZeichen';
 import { AkzentFarben } from '../utils/akzentfarbe';
 
 interface AppHeaderProps {
@@ -19,8 +20,9 @@ interface AppHeaderProps {
   themaFarbe?: string;
   // Knöpfe in Fenstern (Kopfzeile selbst bleibt themaFarbe)
   akzent?: AkzentFarben;
-  onRefresh?: () => void | Promise<void>;
-  loading?: boolean;
+  // Eigener Verein für das Live-Zeichen (ersetzt seit 18.11.2026 den
+  // Neu-Laden-Knopf; neu laden = in der Liste nach unten ziehen).
+  kundenId: string;
   onAdminClick?: () => void;
 }
 
@@ -34,7 +36,6 @@ const s: Record<string, React.CSSProperties> = {
   endSlot: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 4 },
   partnerLabel: { fontSize: '0.5rem', color: 'rgba(255,255,255,0.7)', letterSpacing: '1px' },
   sponsorLogo: { height: 28, width: 44, objectFit: 'contain', background: 'white', borderRadius: 4, padding: 2 },
-  refreshBtn: { color: 'white' },
   adminBtn: { color: 'rgba(255,255,255,0.75)' },
 };
 
@@ -115,7 +116,7 @@ function useTitelEinpassen(title: string) {
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
-  title, logoUrl, logoHintergrund, sponsorLogoUrl, themaFarbe, akzent, onRefresh, loading, onAdminClick
+  title, logoUrl, logoHintergrund, sponsorLogoUrl, themaFarbe, akzent, kundenId, onAdminClick
 }) => {
   const { t } = useLanguage();
   const { titleRef, textRef } = useTitelEinpassen(title);
@@ -150,9 +151,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <IonIcon icon={settingsOutline} />
             </IonButton>
           )}
-          <IonButton onClick={() => onRefresh?.()} disabled={loading} style={s.refreshBtn}>
-            {loading ? <IonSpinner name="crescent" /> : <IonIcon icon={refreshOutline} />}
-          </IonButton>
+          <LiveZeichen kundenId={kundenId} themaFarbe={themaFarbe} akzent={akzent} />
         </IonButtons>
       </IonToolbar>
     </IonHeader>
