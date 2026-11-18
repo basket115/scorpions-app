@@ -1,6 +1,7 @@
 // src/pages/Tab1.tsx v16 — Scorpions: Dropdown wie BBK
 import React, { useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AppHeader from '../components/AppHeader';
+import { useZiehenZumLaden, ZiehenAnzeige } from '../components/ZiehenZumLaden';
 import { BrandingContext, fixGoogleDriveUrl } from '../App';
 import { useLanguage } from '../i18n/LanguageContext';
 import { translateKategorie } from '../i18n/translations';
@@ -464,6 +465,14 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   const [beitraege, setBeitraege] = useState<any[]>([]);
   const [feedState, setFeedState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const feedLoadingRef = useRef(false);
+  // Neu laden durch nach unten ziehen (ersetzt den Knopf oben rechts, 18.11.2026)
+  const listeRef = useRef<HTMLDivElement>(null);
+  const [ziehLaedt, setZiehLaedt] = useState(false);
+  const ziehenLaden = useCallback(async () => {
+    setZiehLaedt(true);
+    try { await reload(); } finally { setZiehLaedt(false); }
+  }, [reload]);
+  const { weg: ziehWeg } = useZiehenZumLaden(listeRef, ziehenLaden, ziehLaedt);
   const [showForm, setShowForm] = useState(false);
   const [titel, setTitel] = useState('');
   const [text, setText] = useState('');
@@ -728,9 +737,10 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
       {showBildInfo && <InfoPopup onClose={() => setShowBildInfo(false)} akzent={akzent} />}
       {editBeitrag && <EditPopup beitrag={editBeitrag} themaFarbe={themaFarbe} akzent={akzent} kundenId={kundenId} kategorien={kategorienFinal} kategorieFest={isTeam} onClose={() => setEditBeitrag(null)} onSaved={handleEditSaved} />}
 
-      <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} logoHintergrund={b?.Logo_Hintergrund} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} akzent={akzent} onRefresh={reload} loading={loading} onAdminClick={onAdminClick} />
+      <AppHeader title={b?.Short_Name || b?.Verein_Name || 'Sport App'}logoUrl={logoUrl} logoHintergrund={b?.Logo_Hintergrund} sponsorLogoUrl={sponsorLogoUrl} themaFarbe={themaFarbe} akzent={akzent} kundenId={branding?.Kunden_ID || resolveCustomerId() || ''} onAdminClick={onAdminClick} />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16, backgroundColor: '#f0f0f0' }}>
+      <ZiehenAnzeige weg={ziehWeg} laedt={ziehLaedt} />
+      <div ref={listeRef} style={{ flex: 1, overflowY: 'auto', padding: 16, backgroundColor: '#f0f0f0', overscrollBehaviorY: 'contain' }}>
         {teamRolle && (
           <div style={{ background: akzent.flaeche, borderRadius: 10, padding: '10px 14px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: akzent.schrift, fontWeight: 700, fontSize: 14 }}>

@@ -15,6 +15,7 @@ import type { Zugang } from "./lib/supabaseBeitraegeSchreiben.ts";
 import { bearerToken, pruefeEmailZugang } from "./lib/emailZugang.ts";
 import { filterBranding } from "./lib/brandingFilter.ts";
 import { fetchLiveAktiv } from "./lib/liveAktiv.ts";
+import { fetchLiveStatus } from "./lib/liveStatus.ts";
 import {
   brandingVollstaendig,
   FEHLER_VEREINSNAME,
@@ -407,6 +408,13 @@ export default async (request: Request, context: Context) => {
         beitraege: supabaseBeitraege,
         sponsors: supabaseSponsoren,
       });
+    }
+
+    // Live-Zeichen in der Kopfzeile: läuft gerade ein Spiel des Vereins?
+    // Wird jede Minute gefragt, zählt nicht als Nutzung.
+    if (action === "live_status") {
+      const kundenId = (url.searchParams.get("kundenId") || "").trim().toUpperCase();
+      return jsonAntwort({ success: true, ...(await fetchLiveStatus(kundenId)) });
     }
 
     if (action === "get_branding") {
