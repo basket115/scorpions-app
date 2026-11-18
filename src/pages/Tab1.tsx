@@ -886,8 +886,6 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
         <a href="https://app.onlang.de/nutzungsbedingungen" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_nutzungsbedingungen', '📋 Nutzungsbedingungen')}</a>
         <a href="https://app.onlang.de/bildverwaltung" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>{t('lbl_bildverwaltung', '📸 Bildverwaltung')}</a>
         <a href="mailto:info@onlang.de" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>✉️ info@onlang.de</a>
-        {/* Live-Knopf (14.11.2026): nur bei Vereinen mit aktivem Live-Zugang (Proxy: Live_Aktiv) */}
-        {branding?.Live_Aktiv === true && <a href="https://live.onlang.de/" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.95)', fontSize: 13, textDecoration: 'none', fontWeight: 700, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 999, padding: '2px 10px' }}>🎥 {t('btn_spiel_uebertragen')}</a>}
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600 }}>© 2026 ONLANG</span>
       </div>
       </div>
