@@ -9,6 +9,7 @@ import { apiGet } from '../utils/api';
 import { resolveCustomerId } from '../utils/customer';
 import BeitragsText from '../components/BeitragsText';
 import VideoVorschau from '../components/VideoVorschau';
+import LazyBild from '../components/LazyBild';
 import { youtubeId } from '../utils/textformat';
 import { loginKopf } from '../utils/vereinsLogin';
 import { akzentFarben, AkzentFarben } from '../utils/akzentfarbe';
@@ -846,16 +847,9 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
     background: '#f2f2f2'
   }}
 >
-  <img
+  <LazyBild
     src={optimizeImageUrl(beitrag.Bild_URL)}
-    alt=""
-    loading="lazy"
-    decoding="async"
-    style={{
-      width: '100%',
-      height: 'auto',
-      display: 'block'
-    }}
+    style={{ width: '100%', height: 'auto', display: 'block' }}
   />
 </div>
 )}

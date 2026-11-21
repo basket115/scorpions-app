@@ -14,6 +14,7 @@
 // über die YouTube-Schnittstelle (iframe_api) mit playVideo(). Klappt das
 // nicht innerhalb von 4 Sekunden, kommt der normale Player mit autoplay=1.
 import React, { useEffect, useRef, useState } from 'react';
+import LazyBild from './LazyBild';
 
 const HOST = 'https://www.youtube-nocookie.com';
 
@@ -101,7 +102,7 @@ const VideoVorschau: React.FC<{ youtubeId: string; titel?: string; style?: React
         aria-label={(titel ? titel + ' – ' : '') + 'Video abspielen'}
         style={{ ...flaeche, padding: 0, margin: 0, cursor: 'pointer', background: '#000', display: 'block' }}>
         {!bildFehler && (
-          <img src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`} alt="" loading="lazy" decoding="async"
+          <LazyBild src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`} platzhalterHoehe={0}
             onError={() => setBildFehler(true)} referrerPolicy="no-referrer"
             style={{ ...flaeche, objectFit: 'cover' }} />
         )}
