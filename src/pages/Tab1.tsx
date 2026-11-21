@@ -8,6 +8,8 @@ import { translateKategorie } from '../i18n/translations';
 import { apiGet } from '../utils/api';
 import { resolveCustomerId } from '../utils/customer';
 import BeitragsText from '../components/BeitragsText';
+import VideoVorschau from '../components/VideoVorschau';
+import { youtubeId } from '../utils/textformat';
 import { loginKopf } from '../utils/vereinsLogin';
 import { akzentFarben, AkzentFarben } from '../utils/akzentfarbe';
 
@@ -847,6 +849,8 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
   <img
     src={optimizeImageUrl(beitrag.Bild_URL)}
     alt=""
+    loading="lazy"
+    decoding="async"
     style={{
       width: '100%',
       height: 'auto',
@@ -865,9 +869,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                 <h3 style={{ margin: '0 0 10px 0', fontSize: 24, lineHeight: 1.25, color: '#222', paddingRight: darfLoeschen ? 90 : 0 }}>{beitrag.Titel}</h3>
                 <BeitragsText text={beitrag.Text} titel={beitrag.Titel} />
                 {embedUrl && (
-                  <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, marginTop: 12, borderRadius: 8, overflow: 'hidden' }}>
-                    <iframe src={embedUrl} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={beitrag.Titel} />
-                  </div>
+                  <VideoVorschau youtubeId={youtubeId(beitrag.Video_URL || beitrag.videoUrl || beitrag.youtubeUrl || '')} titel={beitrag.Titel} style={{ marginTop: 12 }} />
                 )}
                 {buttonLabel && buttonUrl && (
                   <a href={buttonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: 14, padding: '12px 16px', backgroundColor: akzent.flaeche, color: akzent.schrift, borderRadius: 10, textAlign: 'center' as const, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>{buttonLabel}</a>
