@@ -1,5 +1,6 @@
 import React from 'react';
 import { zerlegeText, TextStueck } from '../utils/textformat';
+import VideoVorschau from './VideoVorschau';
 
 // Zeigt den Text eines Beitrags im Textformat des ONLANG Studios: Absätze,
 // fett, kursiv, Links und Videos (siehe utils/textformat.ts). Der Text wird
@@ -27,13 +28,13 @@ const BeitragsText: React.FC<{ text: string; titel?: string }> = ({ text, titel 
       {bloecke.map((block, i) => {
         const letzter = i === bloecke.length - 1;
         if (block.art === 'video') {
+          // YouTube: erst Vorschaubild, Player beim Antippen (VideoVorschau).
+          if (block.typ === 'youtube') {
+            return <VideoVorschau key={i} youtubeId={block.youtubeId} titel={titel} style={{ margin: letzter ? 0 : '0 0 12px 0' }} />;
+          }
           return (
             <div key={i} style={{ position: 'relative', paddingBottom: '56.25%', height: 0, margin: letzter ? 0 : '0 0 12px 0', borderRadius: 8, overflow: 'hidden', background: '#000' }}>
-              {block.typ === 'youtube' ? (
-                <iframe src={`https://www.youtube-nocookie.com/embed/${block.youtubeId}?rel=0`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={titel || 'Video'} />
-              ) : (
-                <video src={block.adresse} controls preload="metadata" playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
-              )}
+              <video src={block.adresse} controls preload="metadata" playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
             </div>
           );
         }
