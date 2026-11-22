@@ -10,6 +10,7 @@ import { resolveCustomerId } from '../utils/customer';
 import BeitragsText from '../components/BeitragsText';
 import VideoVorschau from '../components/VideoVorschau';
 import LazyBild from '../components/LazyBild';
+import { cloudKlein, aufOriginal } from '../utils/bild';
 import { youtubeId } from '../utils/textformat';
 import { loginKopf } from '../utils/vereinsLogin';
 import { akzentFarben, AkzentFarben } from '../utils/akzentfarbe';
@@ -31,11 +32,11 @@ const YouTubeHinweis: React.FC<{ url: string }> = ({ url }) => {
   return <div style={{ marginTop: 4, marginBottom: 8, fontSize: 13, color: '#c0392b' }}>{t('hinweis_youtube_nicht_erkannt', '⚠️ YouTube-Link nicht erkannt')}</div>;
 };
 
-function optimizeImageUrl(url: string): string {
+// Beitragsbilder: Cloudinary verkleinert (cloudKlein, ohne Zuschnitt), sonst
+// Google-Drive-Links reparieren. SVG bleibt unveraendert.
+function optimizeImageUrl(url: string, breite = 1000): string {
   if (!url) return url;
-  if (url.includes('cloudinary.com')) {
-    return url.replace('/upload/', '/upload/c_fit,w_1200,q_auto,f_auto/');
-  }
+  if (url.includes('cloudinary.com')) return cloudKlein(url, breite);
   return fixGoogleDriveUrl(url);
 }
 
@@ -204,7 +205,7 @@ const SponsorBanner: React.FC<{ kundenId: string; initialSponsoren?: SponsorData
   const kasten = (s: SponsorData, extra?: React.CSSProperties, key?: number) => {
     const bannerInhalt = (
       <>
-        {s.logoUrl && <div style={{ flexShrink: 0, width: s.gross ? 84 : 56, height: s.gross ? 84 : 56, borderRadius: 10, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, border: '1px solid #eee' }}><img src={s.logoUrl} alt="Partner Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} referrerPolicy="no-referrer" /></div>}
+        {s.logoUrl && <div style={{ flexShrink: 0, width: s.gross ? 84 : 56, height: s.gross ? 84 : 56, borderRadius: 10, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, border: '1px solid #eee' }}><img src={cloudKlein(s.logoUrl, 300, 300)} alt="Partner Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} referrerPolicy="no-referrer" onError={aufOriginal(s.logoUrl)} /></div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           {s.bannerText && <div style={{ fontSize: s.gross ? 15 : 13, lineHeight: 1.45, color: '#444', whiteSpace: 'pre-wrap' as const, fontWeight: 500 }}>{s.bannerText}</div>}
           {s.linkUrl && <div style={{ marginTop: 6, fontSize: 12, color: '#0057B7', fontWeight: 600 }}>{t('btn_mehr_erfahren', 'Mehr erfahren →')}</div>}
@@ -330,7 +331,7 @@ const EditPopup: React.FC<{ beitrag: any; themaFarbe: string; akzent: AkzentFarb
           <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_beitragsbild', 'Bild URL')}</label>
             <input value={bildUrl} onChange={(e: any) => setBildUrl(e.target.value)} placeholder={t('hinweis_bild_url_beispiel', 'https://i.imgur.com/... oder Google Drive Link')} style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} />
             <BildUploadButton onUploaded={(url) => setBildUrl(url)} themaFarbe={themaFarbe} />
-            {bildUrl && <img src={optimizeImageUrl(bildUrl)} alt={t('lbl_vorschau', 'Vorschau')} style={{ marginTop: 8, width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee' }} />}</div>
+            {bildUrl && <img src={optimizeImageUrl(bildUrl, 600)} alt={t('lbl_vorschau', 'Vorschau')} style={{ marginTop: 8, width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee' }} />}</div>
           <div><label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>{t('lbl_video_url', '▶ YouTube URL')}</label>
             <input value={videoUrl} onChange={(e: any) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' as const, color: '#111' }} />
             <YouTubeHinweis url={videoUrl} /></div>

@@ -8,6 +8,7 @@ import { settingsOutline } from 'ionicons/icons';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
 import { logoOhneRand } from '../utils/logo';
+import { cloudKlein, aufOriginal } from '../utils/bild';
 import InstallKnopf from './InstallKnopf';
 import LiveZeichen from './LiveZeichen';
 import { AkzentFarben } from '../utils/akzentfarbe';
@@ -126,10 +127,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         <div slot="start" style={s.startSlot}>
           {logoUrl && (
             <img
-              src={logoOhneRand(logoUrl)}
+              src={logoOhneRand(cloudKlein(logoUrl, 200, 200))}
               alt="Logo"
               style={{ ...s.logo, background: logoHintergrundFarbe(logoHintergrund) }}
-              // Beschnittenes Bild nicht ladbar: Original zeigen.
+              // Beschnittenes/verkleinertes Bild nicht ladbar: Original zeigen.
               onError={(e) => { if (e.currentTarget.src !== logoUrl) e.currentTarget.src = logoUrl; }}
             />
           )}
@@ -143,7 +144,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           {sponsorLogoUrl && (
             <div style={s.endSlot}>
               <span style={s.partnerLabel}>{t('lbl_partner', 'PARTNER')}</span>
-              <img src={sponsorLogoUrl} alt="Sponsor" style={s.sponsorLogo} />
+              <img src={cloudKlein(sponsorLogoUrl, 150, 150)} alt="Sponsor" style={s.sponsorLogo} onError={aufOriginal(sponsorLogoUrl)} />
             </div>
           )}
           {onAdminClick && (

@@ -6,6 +6,7 @@ import { useLanguage } from './i18n/LanguageContext';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
 import { resolveCustomerId, noCustomerText } from './utils/customer';
 import { appSymbol, logoOhneRand } from './utils/logo';
+import { cloudKlein } from './utils/bild';
 import { akzentFarben } from './utils/akzentfarbe';
 import { anmelden, abmelden, hatSitzung, loginKopf, passwortVergessenAdresse } from './utils/vereinsLogin';
 
@@ -148,7 +149,7 @@ const t = (key: string, fallback?: string): string => {
 
     if (logoUrl) {
       const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-      if (favicon) favicon.href = logoUrl;
+      if (favicon) favicon.href = cloudKlein(logoUrl, 96, 96);
     }
     if (appIconUrl) {
       const appleFavicon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
@@ -452,7 +453,7 @@ if (loading && !branding) {
           </div>
           <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             {loginBildUrl && <div style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-              <img src={logoOhneRand(loginBildUrl)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              <img src={logoOhneRand(cloudKlein(loginBildUrl, 400, 400))} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 onError={(e) => { if (e.currentTarget.src !== loginBildUrl) e.currentTarget.src = loginBildUrl; }} />
             </div>}
             <h2 style={{ color: 'white', fontWeight: 900, fontSize: 28, margin: 0, textAlign: 'center' }}>{branding?.Verein_Name || 'Sport App'}</h2>
