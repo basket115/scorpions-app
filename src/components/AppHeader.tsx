@@ -12,6 +12,13 @@ import InstallKnopf from './InstallKnopf';
 import LiveZeichen from './LiveZeichen';
 import { AkzentFarben } from '../utils/akzentfarbe';
 
+// Schalter Live-Knopf (23.11.2026): vorerst AUSGEBLENDET, nicht geloescht.
+// Wieder einschalten: beim Bauen REACT_APP_LIVE_KNOPF=an setzen (z. B. als
+// Netlify-Umgebungsvariable, danach neu bauen). Ohne Wert bleibt er aus.
+// Ausgeblendet = LiveZeichen wird nicht angezeigt und fragt auch nicht
+// jede Minute live_status ab; die Abfrage-Funktionen bleiben unveraendert.
+const LIVE_KNOPF_AN = process.env.REACT_APP_LIVE_KNOPF === 'an';
+
 interface AppHeaderProps {
   title: string;
   logoUrl?: string;
@@ -151,7 +158,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <IonIcon icon={settingsOutline} />
             </IonButton>
           )}
-          <LiveZeichen kundenId={kundenId} themaFarbe={themaFarbe} akzent={akzent} />
+          {LIVE_KNOPF_AN && (
+            <LiveZeichen kundenId={kundenId} themaFarbe={themaFarbe} akzent={akzent} />
+          )}
         </IonButtons>
       </IonToolbar>
     </IonHeader>
