@@ -12,12 +12,13 @@ import InstallKnopf from './InstallKnopf';
 import LiveZeichen from './LiveZeichen';
 import { AkzentFarben } from '../utils/akzentfarbe';
 
-// Schalter Live-Knopf (23.11.2026): vorerst AUSGEBLENDET, nicht geloescht.
-// Wieder einschalten: beim Bauen REACT_APP_LIVE_KNOPF=an setzen (z. B. als
-// Netlify-Umgebungsvariable, danach neu bauen). Ohne Wert bleibt er aus.
+// Schalter Live-Knopf: 23.11.2026 ausgeblendet, seit 25.11.2026 wieder AN
+// (Pause von ONLANG Live aufgehoben). Ausschalten ohne Code-Aenderung:
+// beim Bauen REACT_APP_LIVE_KNOPF=aus setzen (z. B. als Netlify-
+// Umgebungsvariable, danach neu bauen). Ohne Wert ist er an.
 // Ausgeblendet = LiveZeichen wird nicht angezeigt und fragt auch nicht
 // jede Minute live_status ab; die Abfrage-Funktionen bleiben unveraendert.
-const LIVE_KNOPF_AN = process.env.REACT_APP_LIVE_KNOPF === 'an';
+const LIVE_KNOPF_AN = process.env.REACT_APP_LIVE_KNOPF !== 'aus';
 
 interface AppHeaderProps {
   title: string;
