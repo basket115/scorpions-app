@@ -52,6 +52,15 @@
         document.head.appendChild(manifest);
       })();
     </script>
+    <!-- Schrift fuer die ganze App (27.11.2026, Zweig app-schrift): seit dem
+         Entfernen der Ionic-CSS-Importe (20280df, 26.04.2026) galt die
+         Standardschrift des Browsers (meist Times). Gleiche Schrift wie der
+         Fliesstext der Website (template7 --font-body). -->
+    <style>
+      :root { --ion-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+      html, body { font-family: var(--ion-font-family); }
+      button, input, select, textarea { font-family: inherit; }
+    </style>
   </head>
 
   <body>
