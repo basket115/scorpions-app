@@ -9,6 +9,9 @@ const FIELD_MAP: Record<string, string> = {
   banner_text: "Banner_Text",
   banner_bild_url: "Banner_Bild_URL",
   banner_link_url: "Banner_Link_URL",
+  // Ersatz, wenn Banner-Text/-Link leer sind (Admin: Beschreibung, Website).
+  beschreibung: "Beschreibung",
+  website: "Website",
   aktiv: "Aktiv",
   sponsor_level: "Sponsor_Level",
 };

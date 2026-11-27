@@ -102,15 +102,23 @@ function isAktiv(val: any): boolean {
   return val === undefined || val === null || String(val).trim() === '' ? true : val === true || val === 'true' || String(val).toUpperCase() === 'TRUE';
 }
 
+// Nur http(s)-Adressen als Link (Website-Feld aus dem Admin).
+function sichererLink(wert: unknown): string {
+  const t = String(wert || '').trim();
+  return /^https?:\/\//i.test(t) ? t : '';
+}
+
 // Alle aktiven Sponsoren des Kunden, in der gelieferten Reihenfolge.
 function sponsorenFromRows(rows: any[], kundenId: string): SponsorData[] {
   return (rows || [])
     .filter((r: any) => String(r?.Kunden_ID || '').trim() === kundenId && isAktiv(r?.Aktiv))
     .map((r: any) => ({
       logoUrl: r.Logo_URL || undefined,
-      bannerText: r.Banner_Text || undefined,
+      // Wie der ONLANG-Ersatztext: Logo + Text + "Mehr erfahren →".
+      // Ohne Banner-Text/-Link gelten Beschreibung und Website aus dem Admin.
+      bannerText: String(r.Banner_Text || '').trim() || String(r.Beschreibung || '').trim() || undefined,
       bannerBildUrl: r.Banner_Bild_URL || undefined,
-      linkUrl: r.Banner_Link_URL || undefined,
+      linkUrl: r.Banner_Link_URL || sichererLink(r.Website) || undefined,
       gross: ['hervorgehoben', 'premium'].includes(String(r.Sponsor_Level || '').trim().toLowerCase())
     }));
 }
