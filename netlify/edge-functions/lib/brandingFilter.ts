@@ -20,6 +20,8 @@ const ERLAUBTE_FELDER: readonly string[] = [
   "Demo_Ende",
   "ReadOnly",
   "Kategorien",
+  // fussball | basketball | neutral (lib/sportart.ts), nur fuer das Symbol.
+  "Sportart",
   "WEB_URL",
   "Facebook_URL",
   "Instagram_URL",

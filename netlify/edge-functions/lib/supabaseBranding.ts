@@ -1,3 +1,4 @@
+import { sportAnzeige } from "./sportart.ts";
 import { abrufMitWiederholung } from "./supabaseAbruf.ts";
 
 // Uebersetzt die Supabase-"kunden"-Zeile (snake_case) in die Feldnamen,
@@ -75,6 +76,8 @@ export async function fetchSupabaseBranding(
         branding[appField] = value;
       }
     }
+    // Sport-Symbol in der App (⚽ / 🏀 / 📅), siehe lib/sportart.ts.
+    if (Object.keys(branding).length) branding.Sportart = sportAnzeige(row.sportarten);
     return Object.keys(branding).length ? branding : null;
   } catch (error) {
     console.error("[Supabase Branding] Laden fehlgeschlagen", error);
