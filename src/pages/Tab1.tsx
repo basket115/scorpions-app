@@ -856,7 +856,7 @@ const Tab1: React.FC<Props> = ({ onAdminClick }) => {
                 <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>{translateKategorie(beitrag.Kategorie, t)} • {formatBeitragDatum(beitrag.Datum, lang)}</div>
                 {/^\d{4}-\d{2}-\d{2}/.test(String(beitrag.Spiel_Datum || '')) && (
                   <div style={{ fontSize: 13, color: '#666', fontWeight: 600, marginTop: -2, marginBottom: 8 }}>
-                    🏀 {t('spiel_am')}: {formatBeitragDatum(String(beitrag.Spiel_Datum).slice(0, 10), lang)}
+                    {b?.Sportart === 'fussball' ? '⚽' : b?.Sportart === 'neutral' ? '📅' : '🏀'} {t('spiel_am')}: {formatBeitragDatum(String(beitrag.Spiel_Datum).slice(0, 10), lang)}
                     {/^\d{2}:\d{2}/.test(String(beitrag.Spiel_Uhrzeit || '')) ? ' · ' + String(beitrag.Spiel_Uhrzeit).slice(0, 5) : ''}
                   </div>
                 )}
